@@ -84,3 +84,5 @@ class ConfigParser:
             except ValueError:
                 print("coordinates must be integers")
                 sys.exit(1)
+
+
