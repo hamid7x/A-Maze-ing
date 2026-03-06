@@ -26,24 +26,32 @@ DELTA = {
 class MazeGenerator:
     def __init__(self, grid):
         self.grid = grid
+        self.visited = [[False] * WIDTH for _ in range(HEIGHT)]
     
-    def break_wall(self, y, x, direction):
-        self.visited[y][x] = True
+    def break_wall(self, x, y, direction):
         dx, dy = DELTA[direction]
         nx, ny = x + dx, y + dy
         self.grid[y][x] &= ~direction
         self.grid[ny][nx] &= ~OPPOSITE[direction]
 
-
         
-    def neighbours_cells(self, y, x):
+    def neighbours_cells(self, x, y):
         neighbours = []
         for direction, (dx, dy) in DELTA.items():
             nx, ny = x + dx, y + dy
             if 0 <= nx < WIDTH and 0 <= ny < HEIGHT:
                 if not self.visited[ny][nx]:
-                    neighbours.append((ny, nx, direction))
+                    neighbours.append((nx, ny, direction))
         return neighbours
+
+    def dfs(self, entry):
+        ex, ey = entry
+        self.visited[ey][ex] = True
+        neighbours = self.neighbours_cells(ex, ey)
+        print(neighbours)
+        for x, y, direction in neighbours:
+            self.visited[y][x] = True
+            self.break_wall(x, y, direction)
 
 if __name__ == "__main__":
     parser = ConfigParser('config.txt')
@@ -74,7 +82,8 @@ if __name__ == "__main__":
     # maze.break_wall(0, 4, SOUTH)
     # maze.break_wall(1, 4, SOUTH)
     # maze.break_wall(1, 4, SOUTH)
-    print(maze.visited)
+    # print(maze.visited)
     # print(maze.neighbours(0,0))
-
+    maze.dfs((0,0))
+    print(maze.visited)
     r.renderer()
