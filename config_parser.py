@@ -12,7 +12,7 @@ class ConfigParser:
             with open(self.filename, 'r') as file:
                 for i in file:
                     line = i.strip()
-                    if (line[0] == "#"):
+                    if (not line or line[0] == "#"):
                         continue
                     lst = line.split("=")
                     if (len(lst) > 2 or "=" not in line):
@@ -33,6 +33,12 @@ class ConfigParser:
                 print(f"'{sep.join(unknown)}' not found in config file")
                 sys.exit(1)
             self.convert_data()
+            if (self.file_data["WIDTH"] < 0):
+                print("WIDTH must be >= 0")
+                sys.exit(1)
+            if (self.file_data["HEIGHT"] < 0):
+                print("HEIGHT must be >= 0")
+                sys.exit(1)
             entry_x = self.file_data["ENTRY"]["x"]
             entry_y = self.file_data["ENTRY"]["y"]
             exit_x = self.file_data["EXIT"]["x"]
@@ -49,12 +55,6 @@ class ConfigParser:
             try:
                 if (key == "WIDTH" or key == "HEIGHT"):
                     self.file_data.update({key: int(val)})
-                    if (key == "WIDTH" and self.file_data["WIDTH"] < 0):
-                        print("WIDTH must be >= 0")
-                        sys.exit(1)
-                    if (key == "HEIGHT" and self.file_data["HEIGHT"] < 0):
-                        print("HEIGHT must be >= 0")
-                        sys.exit(1)
             except ValueError:
                 print("width and height must be integers")
                 sys.exit(1)
@@ -84,5 +84,7 @@ class ConfigParser:
             except ValueError:
                 print("coordinates must be integers")
                 sys.exit(1)
-
-
+    def get_val(self, k):
+        for key, val in (self.file_data).items():
+            if (key == k):
+                return (val)
