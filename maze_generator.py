@@ -1,3 +1,4 @@
+from collections import deque
 import random
 from grid import Grid
 from renderer import Renderer
@@ -79,6 +80,42 @@ class MazeGenerator:
                 if stack:
                     curr_cell = stack[-1]
                     curr_cell_row, curr_cell_col = curr_cell
+    def find_neighbors(self, c_row, c_col, distances):
+        neighbors = []
+        for direction, (d_row, d_col) in DIRECTIONS.items():
+            n_row, n_col = c_row + d_row, c_col + d_col
+            if 0 <= n_col < WIDTH and 0 <= n_row < HEIGHT:
+                if distances[n_row][n_col] == -1:
+                    wall = self.grid[n_row][n_col] & OPPOSITE[direction]
+                    # print(wall)
+                    if wall == 0:
+                        neighbors.append((n_row, n_col))
+        return neighbors
+
+    def solve_maze(self):
+        distances = [[-1] * WIDTH for _ in range(HEIGHT)]
+        queue = deque()
+        c_row = 2
+        c_col = 3
+        distances[c_row][c_col] = 0
+        curr_cell = (c_row, c_col)
+        curr_cell_neighbors = self.find_neighbors(*curr_cell, distances)
+        for n_row, n_col in curr_cell_neighbors:
+            queue.append((n_row, n_col))
+            distances[n_row][n_col] = distances[c_row][c_col] + 1
+        for row in distances:
+            for col in row:
+                print(col, end=' ')
+            print()
+        print(queue)
+        curr_cell = queue.popleft()
+        print(curr_cell)
+        print(queue)
+        curr_cell_neighbors = self.find_neighbors(*curr_cell, distances)
+        print(curr_cell_neighbors)
+        for n_row, n_col in curr_cell_neighbors:
+            distances[]
+        
 
     def write_output(self, filepath, grid, entry, exit):
         with open(filepath, 'w') as f:
@@ -105,3 +142,4 @@ if __name__ == "__main__":
     maze.write_output(OUTPUT_FILE, grid.grid, ENTRY, EXIT)
     # print(maze.visited)
     r.renderer()
+    maze.solve_maze()
