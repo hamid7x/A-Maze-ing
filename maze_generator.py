@@ -7,6 +7,10 @@ parser = ConfigParser('config.txt')
 parser.parsing_file()
 WIDTH = parser.get_val('WIDTH')
 HEIGHT = parser.get_val('HEIGHT')
+OUTPUT_FILE = parser.get_val('OUTPUT_FILE')
+ENTRY = parser.get_val('ENTRY')
+EXIT = parser.get_val('EXIT')
+
 
 NORTH = 1
 EAST = 2
@@ -19,6 +23,7 @@ OPPOSITE = {
     EAST: WEST,
     WEST: EAST
     }
+
 DIRECTIONS = {
     NORTH: (-1, 0),
     SOUTH: (1, 0),
@@ -75,6 +80,16 @@ class MazeGenerator:
                     curr_cell = stack[-1]
                     curr_cell_row, curr_cell_col = curr_cell
 
+    def write_output(self, filepath, grid, entry, exit):
+        with open(filepath, 'w') as f:
+            for row in grid:
+                hex_row = ""
+                for col in row:
+                    hex_row += format(col, 'X')
+                f.write(f'{hex_row}\n')
+            f.write('\n')
+            f.write(f"{entry['x']},{entry['y']}\n")
+            f.write(f"{exit['x']},{exit['y']}\n")
 
 
 if __name__ == "__main__":
@@ -87,5 +102,6 @@ if __name__ == "__main__":
     print('After')
     maze = MazeGenerator(grid.grid)
     maze.dfs((0, 0))
+    maze.write_output(OUTPUT_FILE, grid.grid, ENTRY, EXIT)
     # print(maze.visited)
     r.renderer()
