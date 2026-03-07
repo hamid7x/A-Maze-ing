@@ -95,26 +95,27 @@ class MazeGenerator:
     def solve_maze(self):
         distances = [[-1] * WIDTH for _ in range(HEIGHT)]
         queue = deque()
-        c_row = 2
-        c_col = 3
+        c_row = 0
+        c_col = 0
         distances[c_row][c_col] = 0
         curr_cell = (c_row, c_col)
-        curr_cell_neighbors = self.find_neighbors(*curr_cell, distances)
-        for n_row, n_col in curr_cell_neighbors:
-            queue.append((n_row, n_col))
-            distances[n_row][n_col] = distances[c_row][c_col] + 1
+        exit_cell = (EXIT['y'], EXIT['x'])
+        while curr_cell != exit_cell:
+            curr_cell_neighbors = self.find_neighbors(*curr_cell, distances)
+            for n_row, n_col in curr_cell_neighbors:
+                queue.append((n_row, n_col))
+                distances[n_row][n_col] = distances[c_row][c_col] + 1
+            curr_cell = queue.popleft()
+            c_row, c_col = curr_cell
+        path = []
+        print(curr_cell)
+        c_row, c_col = curr_cell
+        print(distances[c_row][c_row])
         for row in distances:
             for col in row:
                 print(col, end=' ')
             print()
-        print(queue)
-        curr_cell = queue.popleft()
-        print(curr_cell)
-        print(queue)
-        curr_cell_neighbors = self.find_neighbors(*curr_cell, distances)
-        print(curr_cell_neighbors)
-        for n_row, n_col in curr_cell_neighbors:
-            distances[]
+           
         
 
     def write_output(self, filepath, grid, entry, exit):
