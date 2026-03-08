@@ -12,6 +12,7 @@ HEIGHT = parser.get_val('HEIGHT')
 OUTPUT_FILE = parser.get_val('OUTPUT_FILE')
 ENTRY = parser.get_val('ENTRY')
 EXIT = parser.get_val('EXIT')
+PERFECT = parser.get_val('PERFECT')
 seed = parser.get_val('SEED')
 
 NORTH = 1
@@ -96,6 +97,21 @@ class MazeGenerator:
                     curr_cell = stack[-1]
                     curr_cell_row, curr_cell_col = curr_cell
 
+    def make_imperfect(self):
+        for c_row in range(0, HEIGHT):
+            for c_col in range(0, WIDTH):
+                # print('cell: ', (c_row, c_col))
+                for direction, (d_row, d_col) in DIRECTIONS.items():
+                    n_row, n_col = c_row + d_row, c_col + d_col
+                    # print('neightbors: ')
+                    if 0 <= n_row < HEIGHT and 0 <= n_col < WIDTH:
+                        wall = self.grid[n_row][n_col] & OPPOSITE[direction]
+                        if wall:
+                            if random.random() < 0.2:
+                                # print('break')
+                                print(direction, (c_row, c_col))
+                                self.break_wall(c_row, c_col, direction)
+
     def find_neighbors(self, c_row, c_col, distances):
         neighbors = []
         for direction, (d_row, d_col) in DIRECTIONS.items():
@@ -168,6 +184,8 @@ if __name__ == "__main__":
     print('After')
     maze = MazeGenerator(grid.grid)
     maze.dfs((ENTRY['y'], ENTRY['x']), seed)
+    if not PERFECT:
+        maze.make_imperfect()
     maze.solve_maze()
     maze.write_output(OUTPUT_FILE, grid.grid, ENTRY, EXIT)
     # print(maze.visited)
