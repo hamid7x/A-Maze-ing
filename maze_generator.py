@@ -13,7 +13,7 @@ OUTPUT_FILE = parser.get_val('OUTPUT_FILE')
 ENTRY = parser.get_val('ENTRY')
 EXIT = parser.get_val('EXIT')
 PERFECT = parser.get_val('PERFECT')
-seed = parser.get_val('SEED')
+seed = None
 
 NORTH = 1
 EAST = 2
@@ -122,6 +122,7 @@ class MazeGenerator:
                 if distances[n_row][n_col] == -1:
                     # print('direction', direction)
                     wall = self.grid[n_row][n_col] & OPPOSITE[direction]
+                    # print(f'from ({c_row},{c_col}) → ({n_row},{n_col}) wall={wall}')
                     # print(wall)
                     if wall == 0:
                         neighbors.append((n_row, n_col))
@@ -137,6 +138,7 @@ class MazeGenerator:
         exit_cell = (EXIT['y'], EXIT['x'])
         while curr_cell != exit_cell:
             curr_cell_neighbors = self.find_neighbors(*curr_cell, distances)
+            # print(f'nb: {curr_cell} - {curr_cell_neighbors}')
             for n_row, n_col in curr_cell_neighbors:
                 queue.append((n_row, n_col))
                 distances[n_row][n_col] = distances[c_row][c_col] + 1
@@ -153,14 +155,17 @@ class MazeGenerator:
                 # print('can i go', direction, (n_row, n_col))
                 if 0 <= n_row < HEIGHT and 0 <= n_col < WIDTH:
                     if distances[n_row][n_col] != -1:
-                        if distances[n_row][n_col] == distances[c_row][c_col] - 1:
+                        wall = self.grid[n_row][n_col] & OPPOSITE[direction]
+                        # print(f'is wall open {wall}')
+                        # print((n_row, n_col), wall)
+                        if distances[n_row][n_col] == distances[c_row][c_col] - 1 and wall == 0:
                             # print('yes')
                             # print('am here now', direction, (n_row, n_col))
                             op_direction = OPPOSITE[direction]
                             self.solution_path.append(PATH_PARSER[op_direction])
                             c_row, c_col = n_row, n_col
-                            # print((c_row, c_col), (e_row, e_col))
         self.solution_path = list(reversed(self.solution_path))
+        print(self.solution_path)
 
     def write_output(self, filepath, grid, entry, exit):
         with open(filepath, 'w') as f:
