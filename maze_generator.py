@@ -95,6 +95,7 @@ class MazeGenerator:
             n_row, n_col = c_row + d_row, c_col + d_col
             if 0 <= n_col < WIDTH and 0 <= n_row < HEIGHT:
                 if distances[n_row][n_col] == -1:
+                    # print('direction', direction)
                     wall = self.grid[n_row][n_col] & OPPOSITE[direction]
                     # print(wall)
                     if wall == 0:
@@ -104,8 +105,8 @@ class MazeGenerator:
     def solve_maze(self):
         distances = [[-1] * WIDTH for _ in range(HEIGHT)]
         queue = deque()
-        c_row = 0
-        c_col = 0
+        c_row = ENTRY['y']
+        c_col = ENTRY['x']
         distances[c_row][c_col] = 0
         curr_cell = (c_row, c_col)
         exit_cell = (EXIT['y'], EXIT['x'])
@@ -148,7 +149,6 @@ class MazeGenerator:
             f.write(f"{entry['x']},{entry['y']}\n")
             f.write(f"{exit['x']},{exit['y']}\n")
             f.write('\n')
-            print(self.solution_path)
             f.write(''.join(self.solution_path))
 
 
