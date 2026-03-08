@@ -4,6 +4,7 @@ from grid import Grid
 from renderer import Renderer
 from config_parser import ConfigParser
 
+
 parser = ConfigParser('config.txt')
 parser.parsing_file()
 WIDTH = parser.get_val('WIDTH')
@@ -11,7 +12,7 @@ HEIGHT = parser.get_val('HEIGHT')
 OUTPUT_FILE = parser.get_val('OUTPUT_FILE')
 ENTRY = parser.get_val('ENTRY')
 EXIT = parser.get_val('EXIT')
-
+seed = parser.get_val('SEED')
 
 NORTH = 1
 EAST = 2
@@ -61,13 +62,19 @@ class MazeGenerator:
                     neighbors.append((n_row, n_col, direction))
         return neighbors
 
-    def dfs(self, entry):
+    def dfs(self, entry, seed=None):
         stack = []
         curr_cell_row, curr_cell_col = entry
         curr_cell = (curr_cell_row, curr_cell_col)
         stack.append(curr_cell)
         self.visited[curr_cell_row][curr_cell_col] = True
-
+        if seed:
+            random.seed(seed)
+        else:
+            seed = random.randint(1, 9999999)
+            random.seed(seed)
+        
+        print('maze seed:', seed)
         while stack:
             # print(f'curr cell {curr_cell}')
             # print(f'curr row, col {curr_cell_row, curr_cell_col}')
@@ -136,7 +143,6 @@ class MazeGenerator:
                             c_row, c_col = n_row, n_col
                             # print((c_row, c_col), (e_row, e_col))
         self.solution_path = list(reversed(self.solution_path))
-        print(self.solution_path)
 
     def write_output(self, filepath, grid, entry, exit):
         with open(filepath, 'w') as f:
@@ -161,7 +167,7 @@ if __name__ == "__main__":
     r.renderer()
     print('After')
     maze = MazeGenerator(grid.grid)
-    maze.dfs((ENTRY['y'], ENTRY['x']))
+    maze.dfs((ENTRY['y'], ENTRY['x']), seed)
     maze.solve_maze()
     maze.write_output(OUTPUT_FILE, grid.grid, ENTRY, EXIT)
     # print(maze.visited)
