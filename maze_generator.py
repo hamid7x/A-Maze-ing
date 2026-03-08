@@ -1,3 +1,4 @@
+from collections import deque
 import random
 from grid import Grid
 from renderer import Renderer
@@ -31,11 +32,19 @@ DIRECTIONS = {
     WEST: (0, -1)
     }
 
+PATH_PARSER = {
+    1: 'N',
+    2: 'E',
+    4: 'S',
+    8: 'W'
+}
+
 
 class MazeGenerator:
     def __init__(self, grid):
         self.grid = grid
         self.visited = [[False] * WIDTH for _ in range(HEIGHT)]
+        self.solution_path = []
 
     def break_wall(self, c_row, c_col, direction):
         d_row, d_col = DIRECTIONS[direction]
@@ -80,6 +89,54 @@ class MazeGenerator:
                     curr_cell = stack[-1]
                     curr_cell_row, curr_cell_col = curr_cell
 
+    def find_neighbors(self, c_row, c_col, distances):
+        neighbors = []
+        for direction, (d_row, d_col) in DIRECTIONS.items():
+            n_row, n_col = c_row + d_row, c_col + d_col
+            if 0 <= n_col < WIDTH and 0 <= n_row < HEIGHT:
+                if distances[n_row][n_col] == -1:
+                    wall = self.grid[n_row][n_col] & OPPOSITE[direction]
+                    # print(wall)
+                    if wall == 0:
+                        neighbors.append((n_row, n_col))
+        return neighbors
+
+    def solve_maze(self):
+        distances = [[-1] * WIDTH for _ in range(HEIGHT)]
+        queue = deque()
+        c_row = 0
+        c_col = 0
+        distances[c_row][c_col] = 0
+        curr_cell = (c_row, c_col)
+        exit_cell = (EXIT['y'], EXIT['x'])
+        while curr_cell != exit_cell:
+            curr_cell_neighbors = self.find_neighbors(*curr_cell, distances)
+            for n_row, n_col in curr_cell_neighbors:
+                queue.append((n_row, n_col))
+                distances[n_row][n_col] = distances[c_row][c_col] + 1
+            curr_cell = queue.popleft()
+            c_row, c_col = curr_cell
+
+        e_row = ENTRY['y']
+        e_col = ENTRY['x']
+        c_row, c_col = curr_cell
+        # print('star point: ', (c_row, c_col))
+        while (c_row, c_col) != (e_row, e_col):
+            for direction, (d_row, d_col) in DIRECTIONS.items():
+                n_row, n_col = c_row + d_row, c_col + d_col
+                # print('can i go', direction, (n_row, n_col))
+                if 0 <= n_row < HEIGHT and 0 <= n_col < WIDTH:
+                    if distances[n_row][n_col] != -1:
+                        if distances[n_row][n_col] == distances[c_row][c_col] - 1:
+                            # print('yes')
+                            # print('am here now', direction, (n_row, n_col))
+                            op_direction = OPPOSITE[direction]
+                            self.solution_path.append(PATH_PARSER[op_direction])
+                            c_row, c_col = n_row, n_col
+                            # print((c_row, c_col), (e_row, e_col))
+        self.solution_path = list(reversed(self.solution_path))
+        print(self.solution_path)
+
     def write_output(self, filepath, grid, entry, exit):
         with open(filepath, 'w') as f:
             for row in grid:
@@ -90,6 +147,9 @@ class MazeGenerator:
             f.write('\n')
             f.write(f"{entry['x']},{entry['y']}\n")
             f.write(f"{exit['x']},{exit['y']}\n")
+            f.write('\n')
+            print(self.solution_path)
+            f.write(''.join(self.solution_path))
 
 
 if __name__ == "__main__":
@@ -101,7 +161,8 @@ if __name__ == "__main__":
     r.renderer()
     print('After')
     maze = MazeGenerator(grid.grid)
-    maze.dfs((0, 0))
+    maze.dfs((ENTRY['y'], ENTRY['x']))
+    maze.solve_maze()
     maze.write_output(OUTPUT_FILE, grid.grid, ENTRY, EXIT)
     # print(maze.visited)
     r.renderer()
