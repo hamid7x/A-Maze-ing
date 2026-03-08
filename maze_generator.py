@@ -96,6 +96,8 @@ class MazeGenerator:
                 if stack:
                     curr_cell = stack[-1]
                     curr_cell_row, curr_cell_col = curr_cell
+        if not PERFECT:
+            self.make_imperfect()
 
     def make_imperfect(self):
         for c_row in range(0, HEIGHT):
@@ -109,7 +111,7 @@ class MazeGenerator:
                         if wall:
                             if random.random() < 0.2:
                                 # print('break')
-                                print(direction, (c_row, c_col))
+                                # print(direction, (c_row, c_col))
                                 self.break_wall(c_row, c_col, direction)
 
     def find_neighbors(self, c_row, c_col, distances):
@@ -184,8 +186,6 @@ if __name__ == "__main__":
     print('After')
     maze = MazeGenerator(grid.grid)
     maze.dfs((ENTRY['y'], ENTRY['x']), seed)
-    if not PERFECT:
-        maze.make_imperfect()
     maze.solve_maze()
     maze.write_output(OUTPUT_FILE, grid.grid, ENTRY, EXIT)
     # print(maze.visited)
