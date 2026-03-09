@@ -13,7 +13,8 @@ OUTPUT_FILE = parser.get_val('OUTPUT_FILE')
 ENTRY = parser.get_val('ENTRY')
 EXIT = parser.get_val('EXIT')
 PERFECT = parser.get_val('PERFECT')
-seed = parser.get_val('SEED')
+seed = None
+# seed = 7817301
 
 NORTH = 1
 EAST = 2
@@ -41,12 +42,34 @@ PATH_PARSER = {
     8: 'W'
 }
 
+PATTERN_HEIGHT = 5
+PATTERN_WIDTH = 7
+
+PATTERN_GRID = [
+            [1, 0, 0, 0, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 0, 1, 1, 1],
+            [0, 0, 1, 0, 1, 0, 0],
+            [0, 0, 1, 0, 1, 1, 1]
+        ]
+
 
 class MazeGenerator:
     def __init__(self, grid):
         self.grid = grid
         self.visited = [[False] * WIDTH for _ in range(HEIGHT)]
         self.solution_path = []
+        self.mask = set()
+
+    def pattern_mask(self):
+        if WIDTH < 9 or HEIGHT < 7:
+            return
+        start_row = HEIGHT // 2 - PATTERN_HEIGHT // 2
+        start_col = WIDTH // 2 - PATTERN_WIDTH // 2
+        for p_row in range(PATTERN_HEIGHT):
+            for p_col in range(PATTERN_WIDTH):
+                if PATTERN_GRID[p_row][p_col] == 1:
+                    self.mask.add((start_row + p_row, start_col + p_col))
 
     def break_wall(self, c_row, c_col, direction):
         d_row, d_col = DIRECTIONS[direction]
@@ -59,11 +82,14 @@ class MazeGenerator:
         for direction, (d_row, d_col) in DIRECTIONS.items():
             n_row, n_col = c_row + d_row, c_col + d_col
             if 0 <= n_col < WIDTH and 0 <= n_row < HEIGHT:
-                if not self.visited[n_row][n_col]:
+                masked = (n_row, n_col) in self.mask
+                # print(masked)
+                if not self.visited[n_row][n_col] and not masked:
                     neighbors.append((n_row, n_col, direction))
         return neighbors
 
     def dfs(self, entry, seed=None):
+        self.pattern_mask()
         stack = []
         curr_cell_row, curr_cell_col = entry
         curr_cell = (curr_cell_row, curr_cell_col)
@@ -96,10 +122,11 @@ class MazeGenerator:
                 if stack:
                     curr_cell = stack[-1]
                     curr_cell_row, curr_cell_col = curr_cell
-        if not PERFECT:
             self.make_imperfect()
 
     def make_imperfect(self):
+        if PERFECT:
+            return
         for c_row in range(0, HEIGHT):
             for c_col in range(0, WIDTH):
                 # print('cell: ', (c_row, c_col))
@@ -108,7 +135,8 @@ class MazeGenerator:
                     # print('neightbors: ')
                     if 0 <= n_row < HEIGHT and 0 <= n_col < WIDTH:
                         wall = self.grid[n_row][n_col] & OPPOSITE[direction]
-                        if wall:
+                        masked = (n_row, n_col) in self.mask
+                        if wall and not masked:
                             if random.random() < 0.2:
                                 # print('break')
                                 # print(direction, (c_row, c_col))
@@ -122,6 +150,7 @@ class MazeGenerator:
                 if distances[n_row][n_col] == -1:
                     # print('direction', direction)
                     wall = self.grid[n_row][n_col] & OPPOSITE[direction]
+                    # print(f'from ({c_row},{c_col}) → ({n_row},{n_col}) wall={wall}')
                     # print(wall)
                     if wall == 0:
                         neighbors.append((n_row, n_col))
@@ -130,18 +159,23 @@ class MazeGenerator:
     def solve_maze(self):
         distances = [[-1] * WIDTH for _ in range(HEIGHT)]
         queue = deque()
-        c_row = ENTRY['y']
-        c_col = ENTRY['x']
-        distances[c_row][c_col] = 0
-        curr_cell = (c_row, c_col)
+        curr_cell = (ENTRY['y'], ENTRY['x'])
         exit_cell = (EXIT['y'], EXIT['x'])
-        while curr_cell != exit_cell:
+        queue.append(curr_cell)
+        c_row, c_col = curr_cell
+        distances[c_row][c_col] = 0
+        while queue:
+            curr_cell = queue.popleft()
+            c_row, c_col = curr_cell
+            if curr_cell == exit_cell:
+                break
             curr_cell_neighbors = self.find_neighbors(*curr_cell, distances)
+            # print(f'nb: {curr_cell} - {curr_cell_neighbors}')
             for n_row, n_col in curr_cell_neighbors:
                 queue.append((n_row, n_col))
                 distances[n_row][n_col] = distances[c_row][c_col] + 1
-            curr_cell = queue.popleft()
-            c_row, c_col = curr_cell
+            # curr_cell = queue.popleft()
+            # c_row, c_col = curr_cell
 
         e_row = ENTRY['y']
         e_col = ENTRY['x']
@@ -153,14 +187,18 @@ class MazeGenerator:
                 # print('can i go', direction, (n_row, n_col))
                 if 0 <= n_row < HEIGHT and 0 <= n_col < WIDTH:
                     if distances[n_row][n_col] != -1:
-                        if distances[n_row][n_col] == distances[c_row][c_col] - 1:
+                        wall = self.grid[n_row][n_col] & OPPOSITE[direction]
+                        # print(f'is wall open {wall}')
+                        # print((n_row, n_col), wall)
+                        if distances[n_row][n_col] == distances[c_row][c_col] - 1 and wall == 0:
                             # print('yes')
                             # print('am here now', direction, (n_row, n_col))
                             op_direction = OPPOSITE[direction]
                             self.solution_path.append(PATH_PARSER[op_direction])
                             c_row, c_col = n_row, n_col
-                            # print((c_row, c_col), (e_row, e_col))
+                            break
         self.solution_path = list(reversed(self.solution_path))
+        print(self.solution_path)
 
     def write_output(self, filepath, grid, entry, exit):
         with open(filepath, 'w') as f:
@@ -172,7 +210,6 @@ class MazeGenerator:
             f.write('\n')
             f.write(f"{entry['x']},{entry['y']}\n")
             f.write(f"{exit['x']},{exit['y']}\n")
-            f.write('\n')
             f.write(''.join(self.solution_path))
 
 
