@@ -14,6 +14,7 @@ ENTRY = parser.get_val('ENTRY')
 EXIT = parser.get_val('EXIT')
 PERFECT = parser.get_val('PERFECT')
 seed = None
+# seed = 7817301
 
 NORTH = 1
 EAST = 2
@@ -41,12 +42,34 @@ PATH_PARSER = {
     8: 'W'
 }
 
+PATTERN_HEIGHT = 5
+PATTERN_WIDTH = 7
+
+PATTERN_GRID = [
+            [1, 0, 0, 0, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 0, 1, 1, 1],
+            [0, 0, 1, 0, 1, 0, 0],
+            [0, 0, 1, 0, 1, 1, 1]
+        ]
+
 
 class MazeGenerator:
     def __init__(self, grid):
         self.grid = grid
         self.visited = [[False] * WIDTH for _ in range(HEIGHT)]
         self.solution_path = []
+        self.mask = set()
+
+    def pattern_mask(self):
+        if WIDTH < 9 or HEIGHT < 7:
+            return
+        start_row = HEIGHT // 2 - PATTERN_HEIGHT // 2
+        start_col = WIDTH // 2 - PATTERN_WIDTH // 2
+        for p_row in range(PATTERN_HEIGHT):
+            for p_col in range(PATTERN_WIDTH):
+                if PATTERN_GRID[p_row][p_col] == 1:
+                    self.mask.add((start_row + p_row, start_col + p_col))
 
     def break_wall(self, c_row, c_col, direction):
         d_row, d_col = DIRECTIONS[direction]
@@ -59,11 +82,14 @@ class MazeGenerator:
         for direction, (d_row, d_col) in DIRECTIONS.items():
             n_row, n_col = c_row + d_row, c_col + d_col
             if 0 <= n_col < WIDTH and 0 <= n_row < HEIGHT:
-                if not self.visited[n_row][n_col]:
+                masked = (n_row, n_col) in self.mask
+                # print(masked)
+                if not self.visited[n_row][n_col] and not masked:
                     neighbors.append((n_row, n_col, direction))
         return neighbors
 
     def dfs(self, entry, seed=None):
+        self.pattern_mask()
         stack = []
         curr_cell_row, curr_cell_col = entry
         curr_cell = (curr_cell_row, curr_cell_col)
@@ -96,10 +122,11 @@ class MazeGenerator:
                 if stack:
                     curr_cell = stack[-1]
                     curr_cell_row, curr_cell_col = curr_cell
-        if not PERFECT:
             self.make_imperfect()
 
     def make_imperfect(self):
+        if PERFECT:
+            return
         for c_row in range(0, HEIGHT):
             for c_col in range(0, WIDTH):
                 # print('cell: ', (c_row, c_col))
@@ -108,7 +135,8 @@ class MazeGenerator:
                     # print('neightbors: ')
                     if 0 <= n_row < HEIGHT and 0 <= n_col < WIDTH:
                         wall = self.grid[n_row][n_col] & OPPOSITE[direction]
-                        if wall:
+                        masked = (n_row, n_col) in self.mask
+                        if wall and not masked:
                             if random.random() < 0.2:
                                 # print('break')
                                 # print(direction, (c_row, c_col))
