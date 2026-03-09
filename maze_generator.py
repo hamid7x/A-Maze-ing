@@ -7,12 +7,12 @@ from config_parser import ConfigParser
 
 parser = ConfigParser('config.txt')
 parser.parsing_file()
-WIDTH = parser.get_val('WIDTH')
-HEIGHT = parser.get_val('HEIGHT')
-OUTPUT_FILE = parser.get_val('OUTPUT_FILE')
-ENTRY = parser.get_val('ENTRY')
-EXIT = parser.get_val('EXIT')
-PERFECT = parser.get_val('PERFECT')
+WIDTH = parser.get_val('width')
+HEIGHT = parser.get_val('height')
+OUTPUT_FILE = parser.get_val('output_file')
+ENTRY = parser.get_val('entry')
+EXIT = parser.get_val('exit')
+PERFECT = parser.get_val('perfect')
 seed = None
 # seed = 7817301
 
@@ -122,7 +122,7 @@ class MazeGenerator:
                 if stack:
                     curr_cell = stack[-1]
                     curr_cell_row, curr_cell_col = curr_cell
-            self.make_imperfect()
+        self.make_imperfect()
 
     def make_imperfect(self):
         if PERFECT:
@@ -135,9 +135,10 @@ class MazeGenerator:
                     # print('neightbors: ')
                     if 0 <= n_row < HEIGHT and 0 <= n_col < WIDTH:
                         wall = self.grid[n_row][n_col] & OPPOSITE[direction]
-                        masked = (n_row, n_col) in self.mask
-                        if wall and not masked:
-                            if random.random() < 0.2:
+                        neighbor_masked = (n_row, n_col) in self.mask
+                        current_masked = (c_row, c_col) in self.mask
+                        if wall and not neighbor_masked and not current_masked:
+                            if random.random() < 0.1:
                                 # print('break')
                                 # print(direction, (c_row, c_col))
                                 self.break_wall(c_row, c_col, direction)
