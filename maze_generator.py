@@ -131,19 +131,23 @@ class MazeGenerator:
     def solve_maze(self):
         distances = [[-1] * WIDTH for _ in range(HEIGHT)]
         queue = deque()
-        c_row = ENTRY['y']
-        c_col = ENTRY['x']
-        distances[c_row][c_col] = 0
-        curr_cell = (c_row, c_col)
+        curr_cell = (ENTRY['y'], ENTRY['x'])
         exit_cell = (EXIT['y'], EXIT['x'])
-        while curr_cell != exit_cell:
+        queue.append(curr_cell)
+        c_row, c_col = curr_cell
+        distances[c_row][c_col] = 0
+        while queue:
+            curr_cell = queue.popleft()
+            c_row, c_col = curr_cell
+            if curr_cell == exit_cell:
+                break
             curr_cell_neighbors = self.find_neighbors(*curr_cell, distances)
             # print(f'nb: {curr_cell} - {curr_cell_neighbors}')
             for n_row, n_col in curr_cell_neighbors:
                 queue.append((n_row, n_col))
                 distances[n_row][n_col] = distances[c_row][c_col] + 1
-            curr_cell = queue.popleft()
-            c_row, c_col = curr_cell
+            # curr_cell = queue.popleft()
+            # c_row, c_col = curr_cell
 
         e_row = ENTRY['y']
         e_col = ENTRY['x']
@@ -164,6 +168,7 @@ class MazeGenerator:
                             op_direction = OPPOSITE[direction]
                             self.solution_path.append(PATH_PARSER[op_direction])
                             c_row, c_col = n_row, n_col
+                            break
         self.solution_path = list(reversed(self.solution_path))
         print(self.solution_path)
 
@@ -177,7 +182,6 @@ class MazeGenerator:
             f.write('\n')
             f.write(f"{entry['x']},{entry['y']}\n")
             f.write(f"{exit['x']},{exit['y']}\n")
-            f.write('\n')
             f.write(''.join(self.solution_path))
 
 
