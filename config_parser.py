@@ -40,7 +40,6 @@ class ConfigParser:
                 sep = ", "
                 print(f"'{sep.join(unknown)}' not found in config file")
                 sys.exit(1)
-            print(self.file_data)
             self.is_valid_data()
             if (self.file_data["width"] < 0):
                 print("Error: width must be >= 0")
@@ -63,12 +62,18 @@ class ConfigParser:
         for key, val in self.file_data.items():
             try:
                 if (key == "width"):
+                    if (val == ""):
+                        print("Error: width cannot be empty")
+                        sys.exit(1)
                     self.file_data.update({key: int(val)})
             except ValueError:
                 print("Error: width must be integer")
                 sys.exit(1)
             try:
                 if (key == "height"):
+                    if (val == ""):
+                        print("Error: height cannot be empty")
+                        sys.exit(1)
                     self.file_data.update({key: int(val)})
             except ValueError:
                 print("Error: height must be integer")
@@ -79,6 +84,7 @@ class ConfigParser:
                     print("Error: file name cannot be empty")
                     sys.exit(1)
             if (key == "perfect"):
+            
                 if (val == "true" or val == "1"):
                     self.file_data[key] = True
                 elif (val == "false" or val == "0"):
@@ -124,4 +130,3 @@ class ConfigParser:
 if __name__ == "__main__":
     uu = ConfigParser("config.txt")
     uu.parsing_file()
-    print(uu.file_data)
