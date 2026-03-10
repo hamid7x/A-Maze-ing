@@ -1,6 +1,7 @@
 from constants import DIRECTIONS, OPPOSITE
 from constants import PATH_PARSER
 from collections import deque
+from typing import Optional
 import random
 from grid import Grid
 from renderer import Renderer
@@ -22,107 +23,110 @@ pattern = parser.get_val('pattern')
 
 
 class MazeGenerator:
-    def __init__(self, grid, pattern):
+    def __init__(self, grid: list[list[int]], pattern: str) -> None:
         self.grid = grid
         self.visited = [[False] * WIDTH for _ in range(HEIGHT)]
         self.solution_path = []
-        if not pattern:
-            self.pattern = '42'
-        else:
-            self.pattern = pattern
+        self.pattern = '42' if not pattern else pattern
         self.mask = set()
 
-    def build_pattern(self):
-        pattern_grid = PATTERN_42_FONT
-        row_height = 5
+    def build_pattern(self) -> list[list[int]]:
         if self.pattern != '42':
             pattern_grid = PATTERNS_FONTS
             row_height = 7
             self.pattern = self.pattern.upper()
-            
+        else:
+            pattern_grid = PATTERN_42_FONT
+            row_height = 5
+
         combined_pattern = []
         for row_indx in range(row_height):
             combined_row = []
             for char in self.pattern:
                 combined_row += pattern_grid[char][row_indx]
                 combined_row += [0]
-            combined_row = combined_row[:-1]
-            combined_pattern.append(combined_row)
+            combined_pattern.append(combined_row[:-1])
         return combined_pattern
- 
-    def pattern_mask(self):
+
+    def pattern_mask(self) -> None:
         if WIDTH < 9 or HEIGHT < 7:
             return
-        PATTERN_GRID = self.build_pattern()
-        PATTERN_HEIGHT = len(PATTERN_GRID)
-        PATTERN_WIDTH = len(PATTERN_GRID[0])
-        start_row = HEIGHT // 2 - PATTERN_HEIGHT // 2
-        start_col = WIDTH // 2 - PATTERN_WIDTH // 2
-        for p_row in range(PATTERN_HEIGHT):
-            for p_col in range(PATTERN_WIDTH):
-                if PATTERN_GRID[p_row][p_col] == 1:
+        pattern_grid = self.build_pattern()
+        pattern_height = len(pattern_grid)
+        pattern_width = len(pattern_grid[0])
+        start_row = HEIGHT // 2 - pattern_height // 2
+        start_col = WIDTH // 2 - pattern_width // 2
+        for p_row in range(pattern_height):
+            for p_col in range(pattern_width):
+                if pattern_grid[p_row][p_col] == 1:
                     self.mask.add((start_row + p_row, start_col + p_col))
 
-    def break_wall(self, c_row, c_col, direction):
+    def break_wall(self, c_row: int, c_col: int, direction: int) -> None:
         d_row, d_col = DIRECTIONS[direction]
         n_row, n_col = c_row + d_row, c_col + d_col
         self.grid[c_row][c_col] &= ~direction
         self.grid[n_row][n_col] &= ~OPPOSITE[direction]
 
-    def neighbors_cells(self, c_row, c_col):
+    def neighbors_cells(
+        self, c_row: int, c_col: int
+    ) -> list[tuple[int, int, int]]:
         neighbors = []
         for direction, (d_row, d_col) in DIRECTIONS.items():
             n_row, n_col = c_row + d_row, c_col + d_col
             if 0 <= n_col < WIDTH and 0 <= n_row < HEIGHT:
-                masked = (n_row, n_col) in self.mask
-                # print(masked)
-                if not self.visited[n_row][n_col] and not masked:
+                not_visited = not self.visited[n_row][n_col]
+                not_masked = (n_row, n_col) not in self.mask
+                if not_visited and not_masked:
                     neighbors.append((n_row, n_col, direction))
         return neighbors
 
-    def hollow_pattern(self):
+    def hollow_pattern(self) -> None:
         if self.pattern == '42':
             return
-        PATTERN_GRID = self.build_pattern()
-        # print('grid', PATTERN_GRID)
-        PATTERN_HEIGHT = len(PATTERN_GRID)
-        PATTERN_WIDTH = len(PATTERN_GRID[0])
-        start_row = HEIGHT // 2 - PATTERN_HEIGHT // 2
-        start_col = WIDTH // 2 - PATTERN_WIDTH // 2
+        pattern_grid = self.build_pattern()
+        pattern_height = len(pattern_grid)
+        pattern_width = len(pattern_grid[0])
+        start_row = HEIGHT // 2 - pattern_height // 2
+        start_col = WIDTH // 2 - pattern_width // 2
         for char_index, char in enumerate(self.pattern):
             if char not in HOLLOW_CELLS:
                 continue
             char_col_offset = char_index * 6
-            hollow_cells = HOLLOW_CELLS[char]
-            for p_row, p_col in hollow_cells:
+            for p_row, p_col in HOLLOW_CELLS[char]:
                 glb_p_col = p_col + char_col_offset
-                grid_row, grid_col = start_row + p_row, start_col + glb_p_col
+                grid_row = start_row + p_row
+                grid_col = start_col + glb_p_col
                 for direction, (d_row, d_col) in DIRECTIONS.items():
-                    n_p_row, n_p_col = p_row + d_row, glb_p_col + d_col
-                    n_grid_row, n_grid_col = grid_row + d_row, grid_col + d_col
-                    if 0 <= n_p_row < PATTERN_HEIGHT and 0 <= n_p_col < PATTERN_WIDTH:
-                        neighbor_value = PATTERN_GRID[n_p_row][n_p_col]
-                        if neighbor_value == 0:
-                            grid_wall = self.grid[grid_row][grid_col] & direction
-                            n_grid_wall = self.grid[n_grid_row][n_grid_col] & OPPOSITE[direction]
+                    n_p_row = p_row + d_row
+                    n_p_col = glb_p_col + d_col
+                    n_grid_row = grid_row + d_row
+                    n_grid_col = grid_col + d_col
+                    row_in_bounds = 0 <= n_p_row < pattern_height
+                    col_in_bounds = 0 <= n_p_col < pattern_width
+                    if row_in_bounds and col_in_bounds:
+                        if pattern_grid[n_p_row][n_p_col] == 0:
+                            curr_cell = self.grid[grid_row][grid_col]
+                            grid_wall = curr_cell & direction
                             if grid_wall:
-                                self.grid[grid_row][grid_col] &= ~direction
-                            if n_grid_wall:
-                                self.grid[n_grid_row][n_grid_col] &= ~OPPOSITE[direction]
+                                curr_cell &= ~direction
+                            n_cell = self.grid[n_grid_row][n_grid_col]
+                            n_cell_wall = n_cell & OPPOSITE[direction]
+                            if n_cell_wall:
+                                n_cell &= ~OPPOSITE[direction]
 
-    def validate_pattern_size(self):
+    def validate_pattern_size(self) -> None:
         pattern_grid = self.build_pattern()
         p_height = len(pattern_grid)
         p_width = len(pattern_grid[0])
         min_height = p_height + 2
         min_width = p_width + 2
-        print(HEIGHT, WIDTH, min_height, min_width)
         if HEIGHT < min_height or WIDTH < min_width:
             print('Maze too small.')
-            print(f'Minimum maze size required: WIDTH={min_width}, HEIGHT={min_height} ')
+            print(f'Minimum maze size required: '
+                  f'WIDTH={min_width}, HEIGHT={min_height}')
             exit(1)
 
-    def dfs(self, entry, seed=None):
+    def dfs(self, entry: tuple[int, int], seed: Optional[int] = None) -> None:
         self.validate_pattern_size()
         self.build_pattern()
         self.pattern_mask()
@@ -136,16 +140,11 @@ class MazeGenerator:
         else:
             seed = random.randint(1, 9999999)
             random.seed(seed)
-        
         print('maze seed:', seed)
         while stack:
-            # print(f'curr cell {curr_cell}')
-            # print(f'curr row, col {curr_cell_row, curr_cell_col}')
             curr_cell_neighbors = self.neighbors_cells(*curr_cell)
-            # print(f'neighbors {curr_cell_neighbors}')
             if curr_cell_neighbors:
                 random_cell = random.randint(0, len(curr_cell_neighbors) - 1)
-                # print(f'random cell to go {random_cell}')
                 vc_row, vc_col, direction = curr_cell_neighbors[random_cell]
                 self.break_wall(curr_cell_row, curr_cell_col, direction)
                 curr_cell = (vc_row, vc_col)
@@ -154,47 +153,40 @@ class MazeGenerator:
                 curr_cell_row, curr_cell_col = curr_cell
             else:
                 stack.pop()
-                # print(f'stack {stack}')
                 if stack:
                     curr_cell = stack[-1]
                     curr_cell_row, curr_cell_col = curr_cell
         self.make_imperfect()
         self.hollow_pattern()
 
-    def make_imperfect(self):
+    def make_imperfect(self) -> None:
         if PERFECT:
             return
-        for c_row in range(0, HEIGHT):
-            for c_col in range(0, WIDTH):
-                # print('cell: ', (c_row, c_col))
+        for c_row in range(HEIGHT):
+            for c_col in range(WIDTH):
                 for direction, (d_row, d_col) in DIRECTIONS.items():
                     n_row, n_col = c_row + d_row, c_col + d_col
-                    # print('neightbors: ')
                     if 0 <= n_row < HEIGHT and 0 <= n_col < WIDTH:
                         wall = self.grid[n_row][n_col] & OPPOSITE[direction]
                         neighbor_masked = (n_row, n_col) in self.mask
                         current_masked = (c_row, c_col) in self.mask
                         if wall and not neighbor_masked and not current_masked:
                             if random.random() < 0.2:
-                                # print('break')
-                                # print(direction, (c_row, c_col))
                                 self.break_wall(c_row, c_col, direction)
 
-    def find_neighbors(self, c_row, c_col, distances):
+    def find_neighbors(
+        self, c_row: int, c_col: int, distances: list[list[int]]
+    ) -> list[tuple[int, int]]:
         neighbors = []
         for direction, (d_row, d_col) in DIRECTIONS.items():
             n_row, n_col = c_row + d_row, c_col + d_col
             if 0 <= n_col < WIDTH and 0 <= n_row < HEIGHT:
                 if distances[n_row][n_col] == -1:
-                    # print('direction', direction)
-                    wall = self.grid[n_row][n_col] & OPPOSITE[direction]
-                    # print(f'from ({c_row},{c_col}) → ({n_row},{n_col}) wall={wall}')
-                    # print(wall)
-                    if wall == 0:
+                    if self.grid[n_row][n_col] & OPPOSITE[direction] == 0:
                         neighbors.append((n_row, n_col))
         return neighbors
 
-    def solve_maze(self):
+    def solve_maze(self) -> None:
         distances = [[-1] * WIDTH for _ in range(HEIGHT)]
         queue = deque()
         curr_cell = (ENTRY['y'], ENTRY['x'])
@@ -207,44 +199,38 @@ class MazeGenerator:
             c_row, c_col = curr_cell
             if curr_cell == exit_cell:
                 break
-            curr_cell_neighbors = self.find_neighbors(*curr_cell, distances)
-            # print(f'nb: {curr_cell} - {curr_cell_neighbors}')
-            for n_row, n_col in curr_cell_neighbors:
+            for n_row, n_col in self.find_neighbors(*curr_cell, distances):
                 queue.append((n_row, n_col))
                 distances[n_row][n_col] = distances[c_row][c_col] + 1
-            # curr_cell = queue.popleft()
-            # c_row, c_col = curr_cell
 
         e_row = ENTRY['y']
         e_col = ENTRY['x']
         c_row, c_col = curr_cell
-        # print('star point: ', (c_row, c_col))
         while (c_row, c_col) != (e_row, e_col):
             for direction, (d_row, d_col) in DIRECTIONS.items():
                 n_row, n_col = c_row + d_row, c_col + d_col
-                # print('can i go', direction, (n_row, n_col))
                 if 0 <= n_row < HEIGHT and 0 <= n_col < WIDTH:
                     if distances[n_row][n_col] != -1:
                         wall = self.grid[n_row][n_col] & OPPOSITE[direction]
-                        # print(f'is wall open {wall}')
-                        # print((n_row, n_col), wall)
-                        if distances[n_row][n_col] == distances[c_row][c_col] - 1 and wall == 0:
-                            # print('yes')
-                            # print('am here now', direction, (n_row, n_col))
-                            op_direction = OPPOSITE[direction]
-                            self.solution_path.append(PATH_PARSER[op_direction])
+                        prev_dist = distances[c_row][c_col] - 1
+                        if distances[n_row][n_col] == prev_dist and wall == 0:
+                            self.solution_path.append(
+                                PATH_PARSER[OPPOSITE[direction]]
+                                )
                             c_row, c_col = n_row, n_col
                             break
         self.solution_path = list(reversed(self.solution_path))
-        print(self.solution_path)
 
-    def write_output(self, filepath, grid, entry, exit):
+    def write_output(
+        self,
+        filepath: str,
+        grid: list[list[int]],
+        entry: dict[str, int],
+        exit: dict[str, int],
+    ) -> None:
         with open(filepath, 'w') as f:
             for row in grid:
-                hex_row = ""
-                for col in row:
-                    hex_row += format(col, 'X')
-                f.write(f'{hex_row}\n')
+                f.write(''.join(format(col, 'X') for col in row) + '\n')
             f.write('\n')
             f.write(f"{entry['x']},{entry['y']}\n")
             f.write(f"{exit['x']},{exit['y']}\n")
@@ -254,7 +240,6 @@ class MazeGenerator:
 if __name__ == "__main__":
     grid = Grid(WIDTH, HEIGHT)
     grid.build_grid()
-    # grid.render_grid(HEIGHT, WIDTH)
     r = Renderer(grid.grid, WIDTH, HEIGHT)
     maze = MazeGenerator(grid.grid, pattern)
     maze.dfs((ENTRY['y'], ENTRY['x']), seed)
