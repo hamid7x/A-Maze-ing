@@ -1,69 +1,61 @@
+from constants import DIRECTIONS, OPPOSITE
+from constants import PATH_PARSER
 from collections import deque
 import random
 from grid import Grid
 from renderer import Renderer
 from config_parser import ConfigParser
-
+from pattern_font import PATTERN_42_FONT
+from custom_pattern_font import PATTERNS_FONTS
+from hollow_cells import HOLLOW_CELLS
 
 parser = ConfigParser('config.txt')
 parser.parsing_file()
-WIDTH = parser.get_val('width')
-HEIGHT = parser.get_val('height')
-OUTPUT_FILE = parser.get_val('output_file')
-ENTRY = parser.get_val('entry')
-EXIT = parser.get_val('exit')
-PERFECT = parser.get_val('perfect')
-seed = None
-# seed = 7817301
-
-NORTH = 1
-EAST = 2
-SOUTH = 4
-WEST = 8
-
-OPPOSITE = {
-    NORTH: SOUTH,
-    SOUTH: NORTH,
-    EAST: WEST,
-    WEST: EAST
-    }
-
-DIRECTIONS = {
-    NORTH: (-1, 0),
-    SOUTH: (1, 0),
-    EAST: (0, 1),
-    WEST: (0, -1)
-    }
-
-PATH_PARSER = {
-    1: 'N',
-    2: 'E',
-    4: 'S',
-    8: 'W'
-}
-
-PATTERN_HEIGHT = 5
-PATTERN_WIDTH = 7
-
-PATTERN_GRID = [
-            [1, 0, 0, 0, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 1],
-            [1, 1, 1, 0, 1, 1, 1],
-            [0, 0, 1, 0, 1, 0, 0],
-            [0, 0, 1, 0, 1, 1, 1]
-        ]
+WIDTH = parser.get_val('WIDTH')
+HEIGHT = parser.get_val('HEIGHT')
+OUTPUT_FILE = parser.get_val('OUTPUT_FILE')
+ENTRY = parser.get_val('ENTRY')
+EXIT = parser.get_val('EXIT')
+PERFECT = parser.get_val('PERFECT')
+seed = parser.get_val('seed')
+pattern = parser.get_val('pattern')
 
 
 class MazeGenerator:
-    def __init__(self, grid):
+    def __init__(self, grid, pattern):
         self.grid = grid
         self.visited = [[False] * WIDTH for _ in range(HEIGHT)]
         self.solution_path = []
+        if not pattern:
+            self.pattern = '42'
+        else:
+            self.pattern = pattern
         self.mask = set()
 
+    def build_pattern(self):
+        pattern_grid = PATTERN_42_FONT
+        row_height = 5
+        if self.pattern != '42':
+            pattern_grid = PATTERNS_FONTS
+            row_height = 7
+            self.pattern = self.pattern.upper()
+            
+        combined_pattern = []
+        for row_indx in range(row_height):
+            combined_row = []
+            for char in self.pattern:
+                combined_row += pattern_grid[char][row_indx]
+                combined_row += [0]
+            combined_row = combined_row[:-1]
+            combined_pattern.append(combined_row)
+        return combined_pattern
+ 
     def pattern_mask(self):
         if WIDTH < 9 or HEIGHT < 7:
             return
+        PATTERN_GRID = self.build_pattern()
+        PATTERN_HEIGHT = len(PATTERN_GRID)
+        PATTERN_WIDTH = len(PATTERN_GRID[0])
         start_row = HEIGHT // 2 - PATTERN_HEIGHT // 2
         start_col = WIDTH // 2 - PATTERN_WIDTH // 2
         for p_row in range(PATTERN_HEIGHT):
@@ -88,7 +80,51 @@ class MazeGenerator:
                     neighbors.append((n_row, n_col, direction))
         return neighbors
 
+    def hollow_pattern(self):
+        if self.pattern == '42':
+            return
+        PATTERN_GRID = self.build_pattern()
+        # print('grid', PATTERN_GRID)
+        PATTERN_HEIGHT = len(PATTERN_GRID)
+        PATTERN_WIDTH = len(PATTERN_GRID[0])
+        start_row = HEIGHT // 2 - PATTERN_HEIGHT // 2
+        start_col = WIDTH // 2 - PATTERN_WIDTH // 2
+        for char_index, char in enumerate(self.pattern):
+            if char not in HOLLOW_CELLS:
+                continue
+            char_col_offset = char_index * 6
+            hollow_cells = HOLLOW_CELLS[char]
+            for p_row, p_col in hollow_cells:
+                glb_p_col = p_col + char_col_offset
+                grid_row, grid_col = start_row + p_row, start_col + glb_p_col
+                for direction, (d_row, d_col) in DIRECTIONS.items():
+                    n_p_row, n_p_col = p_row + d_row, glb_p_col + d_col
+                    n_grid_row, n_grid_col = grid_row + d_row, grid_col + d_col
+                    if 0 <= n_p_row < PATTERN_HEIGHT and 0 <= n_p_col < PATTERN_WIDTH:
+                        neighbor_value = PATTERN_GRID[n_p_row][n_p_col]
+                        if neighbor_value == 0:
+                            grid_wall = self.grid[grid_row][grid_col] & direction
+                            n_grid_wall = self.grid[n_grid_row][n_grid_col] & OPPOSITE[direction]
+                            if grid_wall:
+                                self.grid[grid_row][grid_col] &= ~direction
+                            if n_grid_wall:
+                                self.grid[n_grid_row][n_grid_col] &= ~OPPOSITE[direction]
+
+    def validate_pattern_size(self):
+        pattern_grid = self.build_pattern()
+        p_height = len(pattern_grid)
+        p_width = len(pattern_grid[0])
+        min_height = p_height + 2
+        min_width = p_width + 2
+        print(HEIGHT, WIDTH, min_height, min_width)
+        if HEIGHT < min_height or WIDTH < min_width:
+            print('Maze too small.')
+            print(f'Minimum maze size required: WIDTH={min_width}, HEIGHT={min_height} ')
+            exit(1)
+
     def dfs(self, entry, seed=None):
+        self.validate_pattern_size()
+        self.build_pattern()
         self.pattern_mask()
         stack = []
         curr_cell_row, curr_cell_col = entry
@@ -123,6 +159,7 @@ class MazeGenerator:
                     curr_cell = stack[-1]
                     curr_cell_row, curr_cell_col = curr_cell
         self.make_imperfect()
+        self.hollow_pattern()
 
     def make_imperfect(self):
         if PERFECT:
@@ -138,7 +175,7 @@ class MazeGenerator:
                         neighbor_masked = (n_row, n_col) in self.mask
                         current_masked = (c_row, c_col) in self.mask
                         if wall and not neighbor_masked and not current_masked:
-                            if random.random() < 0.1:
+                            if random.random() < 0.2:
                                 # print('break')
                                 # print(direction, (c_row, c_col))
                                 self.break_wall(c_row, c_col, direction)
@@ -215,16 +252,12 @@ class MazeGenerator:
 
 
 if __name__ == "__main__":
-    print('Before')
     grid = Grid(WIDTH, HEIGHT)
     grid.build_grid()
     # grid.render_grid(HEIGHT, WIDTH)
     r = Renderer(grid.grid, WIDTH, HEIGHT)
-    r.renderer()
-    print('After')
-    maze = MazeGenerator(grid.grid)
+    maze = MazeGenerator(grid.grid, pattern)
     maze.dfs((ENTRY['y'], ENTRY['x']), seed)
     maze.solve_maze()
     maze.write_output(OUTPUT_FILE, grid.grid, ENTRY, EXIT)
-    # print(maze.visited)
     r.renderer()
