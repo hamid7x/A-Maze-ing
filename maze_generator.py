@@ -93,26 +93,25 @@ class MazeGenerator:
                 continue
             char_col_offset = char_index * 6
             for p_row, p_col in HOLLOW_CELLS[char]:
-                glb_p_col = p_col + char_col_offset
+                abs_p_col = p_col + char_col_offset
                 grid_row = start_row + p_row
-                grid_col = start_col + glb_p_col
-                for direction, (d_row, d_col) in DIRECTIONS.items():
+                grid_col = start_col + abs_p_col
+                for d, (d_row, d_col) in DIRECTIONS.items():
                     n_p_row = p_row + d_row
-                    n_p_col = glb_p_col + d_col
+                    n_p_col = abs_p_col + d_col
                     n_grid_row = grid_row + d_row
                     n_grid_col = grid_col + d_col
                     row_in_bounds = 0 <= n_p_row < pattern_height
                     col_in_bounds = 0 <= n_p_col < pattern_width
                     if row_in_bounds and col_in_bounds:
                         if pattern_grid[n_p_row][n_p_col] == 0:
-                            curr_cell = self.grid[grid_row][grid_col]
-                            grid_wall = curr_cell & direction
-                            if grid_wall:
-                                curr_cell &= ~direction
-                            n_cell = self.grid[n_grid_row][n_grid_col]
-                            n_cell_wall = n_cell & OPPOSITE[direction]
-                            if n_cell_wall:
-                                n_cell &= ~OPPOSITE[direction]
+                            opp = OPPOSITE[d]
+                            curr_wall = self.grid[grid_row][grid_col] & d
+                            n_wall = self.grid[n_grid_row][n_grid_col] & opp
+                            if curr_wall:
+                                self.grid[grid_row][grid_col] &= ~d
+                            if n_wall:
+                                self.grid[n_grid_row][n_grid_col] &= ~opp
 
     def validate_pattern_size(self) -> None:
         pattern_grid = self.build_pattern()
