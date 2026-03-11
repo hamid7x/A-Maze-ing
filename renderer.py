@@ -10,8 +10,14 @@ class Renderer:
     """
     switch: bool = True
 
-    def __init__(self, width: int, height: int, filename: str,
-                 pattern: str) -> None:
+    def __init__(
+            self,
+            width: int,
+            height: int,
+            filename: str,
+            perfect: bool,
+            pattern: str
+            ) -> None:
         self.width: int = width
         self.height: int = height
         self.grid: list[list[int]] = []
@@ -43,6 +49,7 @@ class Renderer:
             "\033[48;5;59m",
         ]
         self.filename: str = filename
+        self.perfect: bool = perfect
         self.pattern: str = pattern
         self.path_index: int = 0
         self.wall_index: int = 0
@@ -186,13 +193,18 @@ class Renderer:
                 g = Grid(self.width, self.height)
                 g.build_grid()
                 self.grid = g.grid
-                maze = MazeGenerator(self.grid, self.pattern)
-                maze.dfs((self.entry["y"], self.entry["x"]))
-                maze.write_output(
-                    self.filename, self.grid, self.entry, self.exit)
+                maze = MazeGenerator(
+                    self.grid,
+                    self.width,
+                    self.height,
+                    self.entry,
+                    self.exit,
+                    self.perfect,
+                    self.pattern
+                )
+                maze.dfs()
                 maze.bfs()
-                maze.write_output(
-                    self.filename, self.grid, self.entry, self.exit)
+                maze.write_output(self.filename)
                 self.get_info_from_file()
                 self.show_hide_path()
                 self.display_maze()
