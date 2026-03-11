@@ -1,7 +1,7 @@
 from constants import DIRECTIONS, OPPOSITE
 from constants import PATH_PARSER
 from collections import deque
-from typing import Optional
+from typing import Optional, Callable
 import random
 from pattern_font import PATTERN_42_FONT
 from custom_pattern_font import PATTERNS_FONTS
@@ -17,7 +17,8 @@ class MazeGenerator:
         entry: dict[str, int],
         exit: dict[str, int],
         perfect: bool,
-        pattern: str
+        pattern: str,
+        seed: Optional[int]
     ) -> None:
         """Initialize the MazeGenerator with grid, dimensions, and config."""
 
@@ -28,6 +29,7 @@ class MazeGenerator:
         self.exit = exit
         self.perfect = perfect
         self.pattern = '42' if not pattern else pattern
+        self.seed = seed
         self.visited: list[list[bool]] = [
             [False] * self.width for _ in range(self.height)
         ]
@@ -131,6 +133,17 @@ class MazeGenerator:
                             if n_wall:
                                 self.grid[n_grid_row][n_grid_col] &= ~opp
 
+    def validate_entry_exit(self) -> None:
+        """Validate that entry and exit do not fall inside the pattern mask."""
+        entry_cell = (self.entry['y'], self.entry['x'])
+        exit_cell = (self.exit['y'], self.exit['x'])
+        if entry_cell in self.mask:
+            print('Error: entry coordinates are inside the pattern.')
+            exit(1)
+        if exit_cell in self.mask:
+            print('Error: exit coordinates are inside the pattern.')
+            exit(1)
+
     def validate_pattern_size(self) -> None:
         """Validate that the maze is large enough to fit the pattern."""
 
@@ -145,28 +158,34 @@ class MazeGenerator:
                   f'WIDTH={min_width}, HEIGHT={min_height}')
             exit(1)
 
-    def dfs(self, seed: Optional[int] = None) -> None:
+    def dfs(
+        self,
+        callback: Optional[Callable] = None
+    ) -> None:
         """Generate maze using iterative DFS recursive backtracker."""
 
         self.validate_pattern_size()
         self.build_pattern()
         self.pattern_mask()
+        self.validate_entry_exit()
         stack = []
         curr_cell_row, curr_cell_col = self.entry['y'], self.entry['x']
         curr_cell = (curr_cell_row, curr_cell_col)
         stack.append(curr_cell)
         self.visited[curr_cell_row][curr_cell_col] = True
-        if seed:
-            random.seed(seed)
+        if self.seed:
+            random.seed(self.seed)
         else:
-            seed = random.randint(1, 9999999)
-            random.seed(seed)
+            self.seed = random.randint(1, 9999999)
+            random.seed(self.seed)
         while stack:
             curr_cell_neighbors = self.neighbors_cells(*curr_cell)
             if curr_cell_neighbors:
                 random_cell = random.randint(0, len(curr_cell_neighbors) - 1)
                 vc_row, vc_col, direction = curr_cell_neighbors[random_cell]
                 self.break_wall(curr_cell_row, curr_cell_col, direction)
+                if callback:
+                    callback(curr_cell_row, curr_cell_col)
                 curr_cell = (vc_row, vc_col)
                 stack.append(curr_cell)
                 self.visited[vc_row][vc_col] = True
