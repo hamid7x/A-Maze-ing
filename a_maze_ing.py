@@ -16,17 +16,17 @@ if __name__ == "__main__":
         entry = cast(dict, config_parser.get_val("entry"))
         exit = cast(dict, config_parser.get_val("exit"))
         output_file = cast(str, config_parser.get_val("output_file"))
+        perfect = cast(bool, config_parser.get_val("perfect"))
         pattern = cast(str, config_parser.get_val("pattern"))
         grid = Grid(width, height)
         grid.build_grid()
-        maze_generator: MazeGenerator = MazeGenerator(grid.grid, pattern)
-        maze_generator.dfs((0, 0))
-        maze_generator.write_output(
-            output_file, grid.grid, entry, exit)
+        maze_generator: MazeGenerator = MazeGenerator(
+            grid.grid, width, height, entry, exit, perfect, pattern)
+        maze_generator.dfs()
         maze_generator.bfs()
-        maze_generator.write_output(
-            output_file, grid.grid, entry, exit)
-        render: Renderer = Renderer(width, height, output_file, pattern)
+        maze_generator.write_output(output_file)
+        render: Renderer = Renderer(
+            width, height, output_file, perfect, pattern)
         render.get_info_from_file()
         render.show_hide_path()
         render.display_maze()
