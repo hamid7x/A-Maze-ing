@@ -22,5 +22,7 @@ class Menu:
                 break
             else:
                 print("enter a valid number (1-4)")
+
+
 r = Menu()
 r.display_menu()

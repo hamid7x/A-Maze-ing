@@ -23,7 +23,9 @@ pattern: str = str(parser.get_val('pattern'))
 class MazeGenerator:
     def __init__(self, grid: list[list[int]], pattern: str) -> None:
         self.grid = grid
-        self.visited: list[list[bool]] = [[False] * WIDTH for _ in range(HEIGHT)]
+        self.visited: list[list[bool]] = [
+            [False] * WIDTH for _ in range(HEIGHT)
+        ]
         self.solution_path: list[str] = []
         self.pattern = '42' if not pattern else pattern
         self.mask: set[tuple[int, int]] = set()
