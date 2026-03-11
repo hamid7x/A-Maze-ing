@@ -3,8 +3,6 @@ from constants import PATH_PARSER
 from collections import deque
 from typing import Optional
 import random
-from grid import Grid
-from renderer import Renderer
 from config_parser import ConfigParser
 from pattern_font import PATTERN_42_FONT
 from custom_pattern_font import PATTERNS_FONTS
@@ -12,23 +10,23 @@ from hollow_cells import HOLLOW_CELLS
 
 parser = ConfigParser('config.txt')
 parser.parsing_file()
-WIDTH = parser.get_val('WIDTH')
-HEIGHT = parser.get_val('HEIGHT')
-OUTPUT_FILE = parser.get_val('OUTPUT_FILE')
-ENTRY = parser.get_val('ENTRY')
-EXIT = parser.get_val('EXIT')
-PERFECT = parser.get_val('PERFECT')
-seed = parser.get_val('seed')
-pattern = parser.get_val('pattern')
+WIDTH: int = int(parser.get_val('width'))
+HEIGHT: int = int(parser.get_val('height'))
+OUTPUT_FILE: str = str(parser.get_val('output_file'))
+ENTRY: dict[str, int] = parser.get_val('entry')
+EXIT: dict[str, int] = parser.get_val('exit')
+PERFECT: bool = bool(parser.get_val('perfect'))
+seed: Optional[int] = parser.get_val('seed')
+pattern: str = str(parser.get_val('pattern'))
 
 
 class MazeGenerator:
     def __init__(self, grid: list[list[int]], pattern: str) -> None:
         self.grid = grid
-        self.visited = [[False] * WIDTH for _ in range(HEIGHT)]
-        self.solution_path = []
+        self.visited: list[list[bool]] = [[False] * WIDTH for _ in range(HEIGHT)]
+        self.solution_path: list[str] = []
         self.pattern = '42' if not pattern else pattern
-        self.mask = set()
+        self.mask: set[tuple[int, int]] = set()
 
     def build_pattern(self) -> list[list[int]]:
         if self.pattern != '42':
@@ -50,7 +48,8 @@ class MazeGenerator:
 
     def pattern_mask(self) -> None:
         if WIDTH < 9 or HEIGHT < 7:
-            return
+            print('maze width and hieght samll for 42 patter')
+            exit(1)
         pattern_grid = self.build_pattern()
         pattern_height = len(pattern_grid)
         pattern_width = len(pattern_grid[0])
@@ -139,7 +138,6 @@ class MazeGenerator:
         else:
             seed = random.randint(1, 9999999)
             random.seed(seed)
-        print('maze seed:', seed)
         while stack:
             curr_cell_neighbors = self.neighbors_cells(*curr_cell)
             if curr_cell_neighbors:
@@ -185,9 +183,13 @@ class MazeGenerator:
                         neighbors.append((n_row, n_col))
         return neighbors
 
-    def solve_maze(self) -> None:
+    def bfs(self) -> None:
+        """
+            Solve the maze using  Breadth-First Search algorithm
+            to find shortest path from entry to exit.
+        """
+        queue: deque[tuple[int, int]] = deque()
         distances = [[-1] * WIDTH for _ in range(HEIGHT)]
-        queue = deque()
         curr_cell = (ENTRY['y'], ENTRY['x'])
         exit_cell = (EXIT['y'], EXIT['x'])
         queue.append(curr_cell)
@@ -234,14 +236,3 @@ class MazeGenerator:
             f.write(f"{entry['x']},{entry['y']}\n")
             f.write(f"{exit['x']},{exit['y']}\n")
             f.write(''.join(self.solution_path))
-
-
-if __name__ == "__main__":
-    grid = Grid(WIDTH, HEIGHT)
-    grid.build_grid()
-    r = Renderer(grid.grid, WIDTH, HEIGHT)
-    maze = MazeGenerator(grid.grid, pattern)
-    maze.dfs((ENTRY['y'], ENTRY['x']), seed)
-    maze.solve_maze()
-    maze.write_output(OUTPUT_FILE, grid.grid, ENTRY, EXIT)
-    r.renderer()

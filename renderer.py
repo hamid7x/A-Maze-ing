@@ -190,7 +190,7 @@ class Renderer:
                 maze.dfs((self.entry["y"], self.entry["x"]))
                 maze.write_output(
                     self.filename, self.grid, self.entry, self.exit)
-                maze.solve_maze()
+                maze.bfs()
                 maze.write_output(
                     self.filename, self.grid, self.entry, self.exit)
                 self.get_info_from_file()
