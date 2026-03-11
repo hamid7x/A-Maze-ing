@@ -169,7 +169,9 @@ class MazeGenerator:
         self.pattern_mask()
         self.validate_entry_exit()
         stack = []
-        curr_cell_row, curr_cell_col = self.entry['y'], self.entry['x']
+        # curr_cell_row, curr_cell_col = self.entry['y'], self.entry['x']
+        curr_cell_row = random.randint(0, self.height - 1)
+        curr_cell_col = random.randint(0, self.width - 1)
         curr_cell = (curr_cell_row, curr_cell_col)
         stack.append(curr_cell)
         self.visited[curr_cell_row][curr_cell_col] = True
