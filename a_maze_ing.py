@@ -23,7 +23,7 @@ if __name__ == "__main__":
         maze_generator.dfs((0, 0))
         maze_generator.write_output(
             output_file, grid.grid, entry, exit)
-        maze_generator.solve_maze()
+        maze_generator.bfs()
         maze_generator.write_output(
             output_file, grid.grid, entry, exit)
         render: Renderer = Renderer(width, height, output_file, pattern)
