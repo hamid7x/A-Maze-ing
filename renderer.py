@@ -1,5 +1,8 @@
 from grid import Grid
 from maze_generator import MazeGenerator
+from typing import Optional
+import os
+import time
 
 
 class Renderer:
@@ -16,7 +19,8 @@ class Renderer:
             height: int,
             filename: str,
             perfect: bool,
-            pattern: str
+            pattern: str,
+            seed: Optional[int]
             ) -> None:
         self.width: int = width
         self.height: int = height
@@ -51,9 +55,12 @@ class Renderer:
         self.filename: str = filename
         self.perfect: bool = perfect
         self.pattern: str = pattern
+        self.seed: Optional[int] = seed
         self.path_index: int = 0
         self.wall_index: int = 0
         self.another_ind: int = 0
+        self.animating: bool = False
+        self.curr_cell: Optional[tuple[int, int]] = None
 
     def get_info_from_file(self) -> None:
         """
@@ -99,6 +106,7 @@ class Renderer:
             It optionally displays the solution path between the entry
             and exit cells depending on the `switch` flag.
         """
+        os.system("clear")
         reset = "\033[0m"
         wall_color = self.wall_colors[self.wall_index]
         path_color = self.path_colors[self.path_index]
@@ -135,6 +143,7 @@ class Renderer:
                 is_path = self.switch and direction is not None
                 is_entry = (h == self.entry["y"] and w == self.entry["x"])
                 is_exit = (h == self.exit["y"] and w == self.exit["x"])
+
                 if (self.grid[h][w] & 8):
                     midd += "█"
                 else:
@@ -146,15 +155,19 @@ class Renderer:
                         midd += f"{path_color} {end_path_color}"
                     else:
                         midd += " "
-                if (is_path and not is_entry and not is_exit):
+                is_current = (self.curr_cell == (h, w))
+                if is_current and self.animating:
+                    midd += f"\033[48;5;226m \033[0m{wall_color}"
+                elif (is_path and not is_entry and not is_exit):
                     midd += f"{path_color} {end_path_color}"
                 elif (is_entry):
                     midd += f"{entry_color} {end_path_color}"
                 elif (is_exit):
                     midd += f"{exit_color} {end_path_color}"
                 else:
-                    if (self.grid[h][w] & 1 and self.grid[h][w] & 2
-                       and self.grid[h][w] & 4 and self.grid[h][w] & 8):
+                    if (not self.animating and self.grid[h][w] & 1
+                            and self.grid[h][w] & 2
+                            and self.grid[h][w] & 4 and self.grid[h][w] & 8):
                         midd += f"{color_42} {end_path_color}"
                     else:
                         midd += " "
@@ -162,6 +175,60 @@ class Renderer:
         bottom = "██" * self.width
         result += wall_color + bottom + "█" + reset + "\n"
         print(result)
+
+    def animate_generation(self) -> None:
+        """Animate maze generation by redrawing after each wall break."""
+
+        self.animating = True
+        print("\033[?25l", end="", flush=True)
+        try:
+            g = Grid(self.width, self.height)
+            g.build_grid()
+            self.grid = g.grid
+            self.draw_path = [[None] * self.width for _ in range(self.height)]
+            maze = MazeGenerator(
+                self.grid, self.width, self.height, self.entry,
+                self.exit, self.perfect, self.pattern, self.seed
+            )
+
+            def callback(curr_row: int, curr_col: int) -> None:
+                self.curr_cell = (curr_row, curr_col)
+                self.display_maze()
+                time.sleep(0.03)
+
+            maze.dfs(callback=callback)
+            maze.bfs()
+            maze.write_output(self.filename)
+            self.get_info_from_file()
+            self.show_hide_path()
+            self.animating = False
+            self.display_maze()
+        finally:
+            self.animating = False
+            print("\033[?25h", end="", flush=True)
+
+    def animate_path(self) -> None:
+        """draw solution path step by step."""
+
+        print("\033[?25l", end="", flush=True)
+        try:
+            self.draw_path = [[None] * self.width for _ in range(self.height)]
+            c = self.entry["x"]
+            r = self.entry["y"]
+            for d in self.path.strip():
+                self.draw_path[r][c] = d
+                self.display_maze()
+                time.sleep(0.05)
+                if d == "N":
+                    r -= 1
+                elif d == "S":
+                    r += 1
+                elif d == "W":
+                    c -= 1
+                elif d == "E":
+                    c += 1
+        finally:
+            print("\033[?25h", end="", flush=True)
 
     def display_menu(self) -> None:
         """
@@ -177,14 +244,17 @@ class Renderer:
         while True:
             print("=== A-Maze-ing ===")
             print("1. Re-generate a new maze")
-            print("2. Show/Hide path from entry to exit")
-            print("3. Rotate Maze colors")
-            print("4. Quit")
+            print("2. Re-generate with animation")
+            print("3. Show Path with animation")
+            print("4. Show/Hide path from entry to exit")
+            print("5. Rotate Maze colors")
+            print("6. Quit")
             try:
-                nb = input("Choice? (1-4): ")
+                nb = input("Choice? (1-6): ")
                 operation = int(nb)
             except ValueError:
-                print(f"enter a valid number (1-4) ('{nb}' not a number)")
+                self.display_maze()
+                print(f"enter a valid number (1-6) ('{nb}' not a number)")
                 continue
             except BaseException:
                 print("\nProgram has been stopped")
@@ -200,7 +270,8 @@ class Renderer:
                     self.entry,
                     self.exit,
                     self.perfect,
-                    self.pattern
+                    self.pattern,
+                    self.seed
                 )
                 maze.dfs()
                 maze.bfs()
@@ -208,19 +279,24 @@ class Renderer:
                 self.get_info_from_file()
                 self.show_hide_path()
                 self.display_maze()
-            elif (operation == 2):
+            elif operation == 2:
+                self.animate_generation()
+            elif operation == 3:
+                self.animate_path()
+            elif (operation == 4):
                 self.show_hide_path()
                 self.switch = not self.switch
                 self.display_maze()
-            elif (operation == 3):
+            elif (operation == 5):
                 self.wall_index = (self.wall_index + 1) % len(self.wall_colors)
                 self.path_index = (self.path_index + 1) % len(self.path_colors)
                 self.another_ind = (self.another_ind + 1) % len(self.some_cl)
                 self.display_maze()
-            elif (operation == 4):
+            elif (operation == 6):
                 break
             else:
-                print("enter a valid number (1-4)")
+                self.display_maze()
+                print("enter a valid number (1-6)")
 
     def show_hide_path(self) -> None:
         """
