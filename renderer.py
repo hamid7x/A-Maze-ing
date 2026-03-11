@@ -1,20 +1,25 @@
 from grid import Grid
-from config_parser import ConfigParser
 from maze_generator import MazeGenerator
 
 
 class Renderer:
-    switch = True
+    """
+        Responsible for reading maze data, rendering it in the terminal,
+        and providing a small interactive menu to regenerate the maze,
+        toggle the solution path, and rotate colors.
+    """
+    switch: bool = True
 
-    def __init__(self, width: int, height: int) -> None:
-        self.width = width
-        self.height = height
-        self.grid = []
-        self.entry = {}
-        self.exit = {}
-        self.path = ""
-        self.draw_path = []
-        self.wall_colors = [
+    def __init__(self, width: int, height: int, filename: str,
+                 pattern: str) -> None:
+        self.width: int = width
+        self.height: int = height
+        self.grid: list[list[int]] = []
+        self.entry: dict[str, int] = {}
+        self.exit: dict[str, int] = {}
+        self.path: str = ""
+        self.draw_path: list[list[str | None]] = []
+        self.wall_colors: list[str] = [
             "\033[0m",
             "\033[31m",
             "\033[32m",
@@ -23,13 +28,13 @@ class Renderer:
             "\033[35m",
             "\033[36m"
         ]
-        self.some_cl = [
+        self.some_cl: list[str] = [
             "\033[48;5;95m",
             "\033[48;5;214m",
-            "\033[48;5;201m",
             "\033[48;5;82m",
+            "\033[48;5;201m",
         ]
-        self.path_colors = [
+        self.path_colors: list[str] = [
             "\033[48;5;279m",
             "\033[48;5;129m",
             "\033[48;5;123m",
@@ -37,21 +42,28 @@ class Renderer:
             "\033[48;5;202m",
             "\033[48;5;59m",
         ]
-        config = ConfigParser("config.txt")
-        config.parsing_file()
-        filename = config.get_val("output_file")
-        self.filename = filename
-        self.path_index = 0
-        self.wall_index = 0
-        self.another_ind = 0
+        self.filename: str = filename
+        self.pattern: str = pattern
+        self.path_index: int = 0
+        self.wall_index: int = 0
+        self.another_ind: int = 0
 
     def get_info_from_file(self) -> None:
+        """
+            Read maze data from the output file.
+
+            The file contains:
+            - The maze grid encoded in hexadecimal values.
+            - Entry coordinates.
+            - Exit coordinates.
+            - The solution path as directions (N, S, E, W).
+        """
         self.grid = []
         with open(self.filename) as file:
-            lines = file.readlines()
+            lines: list = file.readlines()
             for i in lines:
-                row = []
-                line = i.strip()
+                row: list[int] = []
+                line: str = i.strip()
                 if (not line):
                     break
                 for c in line:
@@ -61,7 +73,7 @@ class Renderer:
             while (i < len(lines) and lines[i].strip()):
                 i += 1
                 continue
-            data = []
+            data: list[str] = []
             i += 1
             while (i < len(lines)):
                 data.append(lines[i])
@@ -73,6 +85,13 @@ class Renderer:
             self.path = data[2]
 
     def display_maze(self) -> None:
+        """
+            Render the maze in the terminal.
+
+            The maze is drawn using block characters and ANSI color codes.
+            It optionally displays the solution path between the entry
+            and exit cells depending on the `switch` flag.
+        """
         reset = "\033[0m"
         wall_color = self.wall_colors[self.wall_index]
         path_color = self.path_colors[self.path_index]
@@ -138,6 +157,16 @@ class Renderer:
         print(result)
 
     def display_menu(self) -> None:
+        """
+            Display the interactive command menu.
+
+            The menu allows the user to:
+            1. Generate a new maze.
+            2. Show or hide the solution path.
+            3. Rotate maze colors.
+            4. Quit the program.
+            User input is validated to ensure a correct option is selected.
+        """
         while True:
             print("=== A-Maze-ing ===")
             print("1. Re-generate a new maze")
@@ -157,7 +186,7 @@ class Renderer:
                 g = Grid(self.width, self.height)
                 g.build_grid()
                 self.grid = g.grid
-                maze = MazeGenerator(self.grid)
+                maze = MazeGenerator(self.grid, self.pattern)
                 maze.dfs((self.entry["y"], self.entry["x"]))
                 maze.write_output(
                     self.filename, self.grid, self.entry, self.exit)
@@ -182,6 +211,12 @@ class Renderer:
                 print("enter a valid number (1-4)")
 
     def show_hide_path(self) -> None:
+        """
+            Build the path visualization grid.
+            This method converts the stored path string (N, S, E, W)
+            into a 2D structure (`draw_path`) that indicates the direction
+            of movement for each cell along the solution path.
+        """
         self.draw_path = [[None] * self.width for _ in range(self.height)]
         c = self.entry["x"]
         r = self.entry["y"]

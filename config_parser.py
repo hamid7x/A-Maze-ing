@@ -1,11 +1,12 @@
 import sys
+from typing import Any
 
 
 class ConfigParser:
 
     def __init__(self, filename: str) -> None:
-        self.filename = filename
-        self.file_data = {}
+        self.filename: str = filename
+        self.file_data: dict[str, Any] = {}
 
     def parsing_file(self) -> None:
         try:
@@ -15,7 +16,6 @@ class ConfigParser:
                     if (not line or line[0] == "#"):
                         continue
                     lst = [i.strip() for i in line.split("=")]
-                    print(lst)
                     if (len(lst) > 2 or "=" not in line):
                         print("Error: invalid format in config file")
                         sys.exit(1)
@@ -95,7 +95,6 @@ class ConfigParser:
             try:
                 if (key == "entry" or key == "exit"):
                     coord = val.split(",")
-                    print(coord)
                     if (len(coord) == 1):
                         print("Error: coordinates must be to integer ex (1,1)")
                         sys.exit(1)
@@ -126,12 +125,5 @@ class ConfigParser:
             if (key == "pattern" and val == ""):
                 self.file_data.update({key: None})
 
-    def get_val(self, k) -> int | str | dict | None:
+    def get_val(self, k: str) -> int | str | dict | None:
         return self.file_data.get(k)
-
-
-if __name__ == "__main__":
-    uu = ConfigParser("config.txt")
-    uu.parsing_file()
-    print(uu.get_val("pattern"))
-    print(uu.file_data)
