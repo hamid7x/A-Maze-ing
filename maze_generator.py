@@ -170,7 +170,7 @@ class MazeGenerator:
                         neighbor_masked = (n_row, n_col) in self.mask
                         current_masked = (c_row, c_col) in self.mask
                         if wall and not neighbor_masked and not current_masked:
-                            if random.random() < 0.2:
+                            if random.random() < 0.1:
                                 self.break_wall(c_row, c_col, direction)
 
     def find_neighbors(
