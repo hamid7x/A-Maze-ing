@@ -1,11 +1,12 @@
 import sys
+from typing import Any
 
 
 class ConfigParser:
 
     def __init__(self, filename: str) -> None:
-        self.filename = filename
-        self.file_data = {}
+        self.filename: str = filename
+        self.file_data: dict[str, Any] = {}
 
     def parsing_file(self) -> None:
         try:
@@ -14,12 +15,12 @@ class ConfigParser:
                     line = i.strip().lower()
                     if (not line or line[0] == "#"):
                         continue
-                    lst = line.split("=")
+                    lst = [i.strip() for i in line.split("=")]
                     if (len(lst) > 2 or "=" not in line):
                         print("Error: invalid format in config file")
                         sys.exit(1)
                     constants = ["width", "height", "entry", "exit",
-                                 "output_file", "perfect", "seed"]
+                                 "output_file", "perfect", "seed", "pattern"]
                     if (lst[0] not in constants):
                         print("Error: invalid key added!")
                         sys.exit(1)
@@ -40,7 +41,6 @@ class ConfigParser:
                 sep = ", "
                 print(f"'{sep.join(unknown)}' not found in config file")
                 sys.exit(1)
-            print(self.file_data)
             self.is_valid_data()
             if (self.file_data["width"] < 0):
                 print("Error: width must be >= 0")
@@ -63,12 +63,18 @@ class ConfigParser:
         for key, val in self.file_data.items():
             try:
                 if (key == "width"):
+                    if (val == ""):
+                        print("Error: width cannot be empty")
+                        sys.exit(1)
                     self.file_data.update({key: int(val)})
             except ValueError:
                 print("Error: width must be integer")
                 sys.exit(1)
             try:
                 if (key == "height"):
+                    if (val == ""):
+                        print("Error: height cannot be empty")
+                        sys.exit(1)
                     self.file_data.update({key: int(val)})
             except ValueError:
                 print("Error: height must be integer")
@@ -116,12 +122,8 @@ class ConfigParser:
                     self.file_data.update({key: int(val)})
             except ValueError:
                 self.file_data.update({key: None})
+            if (key == "pattern" and val == ""):
+                self.file_data.update({key: None})
 
-    def get_val(self, k) -> int | str | dict | None:
+    def get_val(self, k: str) -> int | str | dict | None:
         return self.file_data.get(k)
-
-
-if __name__ == "__main__":
-    uu = ConfigParser("config.txt")
-    uu.parsing_file()
-    print(uu.file_data)

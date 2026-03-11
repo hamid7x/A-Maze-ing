@@ -1,22 +1,25 @@
 class Grid:
-
+    """Represents a 2D grid with a specified width and height."""
     def __init__(self, width: int, height: int) -> None:
-        self.width = width
-        self.height = height
-        self.grid = []
+        """
+            Initialize the Grid object.
+            Args:
+                width (int): Number of columns in the grid.
+                height (int): Number of rows in the grid.
+        """
+        self.width: int = width
+        self.height: int = height
+        self.grid: list[list[int]] = []
 
-    def build_grid(self):
+    def build_grid(self) -> None:
+        """
+        Build a 2D grid initialized with the value 0xf.
+
+        The method creates a grid with the specified height and width
+        and fills each cell with the integer value 0xf.
+        """
         for _ in range(self.height):
-            row = []
+            row: list[int] = []
             for _ in range(self.width):
                 row.append(0xf)
             self.grid.append(row)
-    
-    def get_cell(self, x, y):
-        if (0 <= x < self.width and 0 <= y < self.height):
-            return self.grid[y][x]
-        else:
-            return None
-    def set_cell(self, x, y, val) -> None:
-        if (0 <= x < self.width and 0 <= y < self.height):
-            self.grid[y][x] = val
