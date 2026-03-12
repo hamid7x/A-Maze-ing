@@ -60,6 +60,7 @@ class Renderer:
         self.wall_index: int = 0
         self.another_ind: int = 0
         self.animating: bool = False
+        self.algorithm: str = "dfs"
         self.curr_cell: Optional[tuple[int, int]] = None
 
     def get_info_from_file(self) -> None:
@@ -195,8 +196,10 @@ class Renderer:
                 self.curr_cell = (curr_row, curr_col)
                 self.display_maze()
                 time.sleep(0.03)
-
-            maze.dfs(callback=callback)
+            if self.algorithm == 'dfs':
+                maze.dfs(callback=callback)
+            else:
+                maze.prim(callback=callback)
             maze.bfs()
             maze.write_output(self.filename)
             self.get_info_from_file()
@@ -238,16 +241,19 @@ class Renderer:
             1. Generate a new maze.
             2. Show or hide the solution path.
             3. Rotate maze colors.
-            4. Quit the program.
+            4. Show Path with animation
+            5. Switch algorithm (DFS/PRIM)
+            6. Quit the program.
             User input is validated to ensure a correct option is selected.
         """
         while True:
             print("=== A-Maze-ing ===")
             print("1. Re-generate a new maze")
-            print("2. Re-generate with animation")
-            print("3. Show Path with animation")
-            print("4. Show/Hide path from entry to exit")
-            print("5. Rotate Maze colors")
+            print("2. Show/Hide path from entry to exit")
+            print("3. Rotate Maze colors")
+            print("4. Show Path with animation")
+            print(f"5. Switch algorithm(DFS/PRIM)"
+                  f"(current: {self.algorithm.upper()})")
             print("6. Quit")
             try:
                 nb = input("Choice? (1-6): ")
@@ -260,39 +266,24 @@ class Renderer:
                 print("\nProgram has been stopped")
                 break
             if (operation == 1):
-                g = Grid(self.width, self.height)
-                g.build_grid()
-                self.grid = g.grid
-                maze = MazeGenerator(
-                    self.grid,
-                    self.width,
-                    self.height,
-                    self.entry,
-                    self.exit,
-                    self.perfect,
-                    self.pattern,
-                    self.seed
-                )
-                maze.dfs()
-                maze.bfs()
-                maze.write_output(self.filename)
-                self.get_info_from_file()
-                self.show_hide_path()
-                self.display_maze()
-            elif operation == 2:
                 self.animate_generation()
-            elif operation == 3:
-                self.animate_path()
-            elif (operation == 4):
+            elif operation == 2:
                 self.show_hide_path()
                 self.switch = not self.switch
                 self.display_maze()
-            elif (operation == 5):
+            elif operation == 3:
                 self.wall_index = (self.wall_index + 1) % len(self.wall_colors)
                 self.path_index = (self.path_index + 1) % len(self.path_colors)
                 self.another_ind = (self.another_ind + 1) % len(self.some_cl)
                 self.display_maze()
+            elif (operation == 4):
+                self.animate_path()
+            elif operation == 5:
+                self.algorithm = "prim" if self.algorithm == "dfs" else "dfs"
+                self.display_maze()
+                print(f"Algorithm switched to {self.algorithm.upper()}")
             elif (operation == 6):
+                print('Good, Bye!')
                 break
             else:
                 self.display_maze()
