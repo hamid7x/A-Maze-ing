@@ -200,6 +200,38 @@ class MazeGenerator:
         self.make_imperfect()
         self.hollow_pattern()
 
+    def prim(self, callback: Optional[Callable]) -> None:
+        """Generate maze using Prim's algorithm."""
+
+        self.validate_pattern_size()
+        self.build_pattern()
+        self.pattern_mask()
+        self.validate_entry_exit()
+
+        frontier = []
+        while True:
+            start_row = random.randint(0, self.height - 1)
+            start_col = random.randint(0, self.width - 1)
+            if (start_row, start_col) not in self.mask:
+                break
+
+        self.visited[start_row][start_col] = True
+        frontier += self.neighbors_cells(start_row, start_col)
+
+        while frontier:
+            idx = random.randint(0, len(frontier) - 1)
+            n_row, n_col, direction = frontier.pop(idx)
+            if not self.visited[n_row][n_col]:
+                d_row, d_col = DIRECTIONS[direction]
+                prev_row, prev_col = n_row - d_row, n_col - d_col 
+                self.break_wall(prev_row, prev_col, direction)
+                if callback:
+                    callback(n_row, n_col)
+                self.visited[n_row][n_col] = True
+                frontier += self.neighbors_cells(n_row, n_col)
+        self.make_imperfect()
+        self.hollow_pattern()
+
     def make_imperfect(self) -> None:
         """Randomly break extra walls to create loops in the maze."""
 
