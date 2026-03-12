@@ -38,6 +38,9 @@ class MazeGenerator:
 
     def build_pattern(self) -> list[list[int]]:
         """Build the combined pattern grid for the current pattern string."""
+        if not self.pattern.isalnum():
+            print('Pattern must contain only alphanemuric')
+            exit(1)
 
         if self.pattern != '42':
             pattern_grid = PATTERNS_FONTS
@@ -169,7 +172,6 @@ class MazeGenerator:
         self.pattern_mask()
         self.validate_entry_exit()
         stack = []
-        # curr_cell_row, curr_cell_col = self.entry['y'], self.entry['x']
         curr_cell_row = random.randint(0, self.height - 1)
         curr_cell_col = random.randint(0, self.width - 1)
         curr_cell = (curr_cell_row, curr_cell_col)
@@ -200,7 +202,7 @@ class MazeGenerator:
         self.make_imperfect()
         self.hollow_pattern()
 
-    def prim(self, callback: Optional[Callable]) -> None:
+    def prim(self, callback: Optional[Callable] = None) -> None:
         """Generate maze using Prim's algorithm."""
 
         self.validate_pattern_size()
