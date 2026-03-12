@@ -10,13 +10,17 @@ class ConfigParser:
 
     def parsing_file(self) -> None:
         try:
+            if (self.filename.lower().endswith(".py")):
+                print("Python files are not allowed")
+                sys.exit(1)
             with open(self.filename, 'r') as file:
                 for i in file:
                     line = i.strip().lower()
                     if (not line or line[0] == "#"):
                         continue
                     lst = [i.strip() for i in line.split("=")]
-                    if (len(lst) > 2 or "=" not in line):
+                    if (len(lst) > 2 or "=" not in line
+                       or line.startswith("=")):
                         print("Error: invalid format in config file")
                         sys.exit(1)
                     constants = ["width", "height", "entry", "exit",
@@ -57,6 +61,12 @@ class ConfigParser:
                 sys.exit(1)
         except FileNotFoundError:
             print("Error: file not found")
+            sys.exit(1)
+        except IsADirectoryError:
+            print("this is a directory not a file")
+            sys.exit(1)
+        except Exception as err:
+            print(err)
             sys.exit(1)
 
     def is_valid_data(self) -> None:
