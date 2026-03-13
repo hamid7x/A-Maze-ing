@@ -185,8 +185,9 @@ class Renderer:
         result += wall_color + bottom + "█" + reset + "\n"
         print(result)
 
-    def generate_maze(self):
+    def generate_maze(self) -> None:
         """Generate maze without animation and display result."""
+
         g = Grid(self.width, self.height)
         g.build_grid()
         self.grid = g.grid
@@ -277,8 +278,9 @@ class Renderer:
         finally:
             print("\033[?25h", end="", flush=True)
 
-    def change_pattern(self):
+    def change_pattern(self) -> None:
         """Change pattern, validate and regenerate maze."""
+
         try:
             new_pattern = input("Enter pattern: ").strip().upper()
             if not new_pattern.isalnum():
@@ -304,8 +306,9 @@ class Renderer:
             print('\nProgram stopped by user. Goodbye!')
             exit(1)
 
-    def resize_width_and_height(self):
+    def resize_width_and_height(self) -> None:
         """Resizing dimensions of maze, validate and regenerate maze."""
+
         while True:
             try:
                 new_width = int(input('Enter new width: ').strip())
@@ -393,7 +396,6 @@ class Renderer:
                 self.algorithm = "prim" if self.algorithm == "dfs" else "dfs"
                 self.display_maze()
                 print(f"Algorithm switched to {self.algorithm.upper()}")
-                print("\n--------------------------------")
             elif operation == 6:
                 self.change_pattern()
             elif operation == 7:
