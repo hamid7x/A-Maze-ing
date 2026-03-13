@@ -232,7 +232,7 @@ class MazeGenerator:
             n_row, n_col, direction = frontier.pop(idx)
             if not self.visited[n_row][n_col]:
                 d_row, d_col = DIRECTIONS[direction]
-                prev_row, prev_col = n_row - d_row, n_col - d_col 
+                prev_row, prev_col = n_row - d_row, n_col - d_col
                 self.break_wall(prev_row, prev_col, direction)
                 if callback:
                     callback(n_row, n_col)
