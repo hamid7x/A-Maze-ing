@@ -3,6 +3,7 @@ from maze_generator import MazeGenerator
 from typing import Optional
 import os
 import time
+import random
 
 
 class Renderer:
@@ -54,8 +55,9 @@ class Renderer:
         ]
         self.filename: str = filename
         self.perfect: bool = perfect
-        self.pattern: str = pattern
+        self.pattern = pattern or '42'
         self.seed: Optional[int] = seed
+        self.has_config_seed = seed is not None
         self.path_index: int = 0
         self.wall_index: int = 0
         self.another_ind: int = 0
@@ -109,6 +111,12 @@ class Renderer:
         """
         os.system("clear")
         reset = "\033[0m"
+        header = (f"  A-MAZE-ING  ◆  {self.width} x {self.height}"
+                  f" ◆  Seed: {self.seed}  ")
+        print(f"{'█' * len(header)}")
+        print(header)
+        print(f"{'█' * len(header)}")
+        print()
         wall_color = self.wall_colors[self.wall_index]
         path_color = self.path_colors[self.path_index]
         end_path_color = "\033[0m" + wall_color
@@ -177,6 +185,32 @@ class Renderer:
         result += wall_color + bottom + "█" + reset + "\n"
         print(result)
 
+    def generate_maze(self):
+        """Generate maze without animation and display result."""
+        g = Grid(self.width, self.height)
+        g.build_grid()
+        self.grid = g.grid
+        self.draw_path = [[None] * self.width for _ in range(self.height)]
+        if not self.has_config_seed:
+            self.seed = None
+        maze = MazeGenerator(
+            self.grid, self.width, self.height,
+            self.entry, self.exit, self.perfect,
+            self.pattern, self.seed
+        )
+
+        if self.algorithm == 'dfs':
+            maze.dfs()
+        else:
+            maze.prim()
+        self.seed = maze.seed
+        maze.bfs()
+        maze.write_output(self.filename)
+
+        self.get_info_from_file()
+        self.show_hide_path()
+        self.display_maze()
+
     def animate_generation(self) -> None:
         """Animate maze generation by redrawing after each wall break."""
 
@@ -187,6 +221,8 @@ class Renderer:
             g.build_grid()
             self.grid = g.grid
             self.draw_path = [[None] * self.width for _ in range(self.height)]
+            if not self.has_config_seed:
+                self.seed = random.randint(1, 99999)
             maze = MazeGenerator(
                 self.grid, self.width, self.height, self.entry,
                 self.exit, self.perfect, self.pattern, self.seed
@@ -200,12 +236,17 @@ class Renderer:
                 maze.dfs(callback=callback)
             else:
                 maze.prim(callback=callback)
+            self.seed = maze.seed
             maze.bfs()
             maze.write_output(self.filename)
+
             self.get_info_from_file()
             self.show_hide_path()
             self.animating = False
             self.display_maze()
+        except KeyboardInterrupt:
+            print("\nProgram stopped by user. Goodbye!")
+            exit(1)
         finally:
             self.animating = False
             print("\033[?25h", end="", flush=True)
@@ -230,8 +271,74 @@ class Renderer:
                     c -= 1
                 elif d == "E":
                     c += 1
+        except KeyboardInterrupt:
+            print('\nProgram stopped by user. Goodbye!')
+            exit(1)
         finally:
             print("\033[?25h", end="", flush=True)
+
+    def change_pattern(self):
+        """Change pattern, validate and regenerate maze."""
+        try:
+            new_pattern = input("Enter pattern: ").strip().upper()
+            if not new_pattern.isalnum():
+                self.display_maze()
+                print("Pattern must contain only letters and numbers")
+                return
+            temp_maze = MazeGenerator(
+                [], self.width, self.height,
+                self.entry, self.exit,
+                self.perfect, new_pattern, self.seed
+            )
+            temp_maze.pattern_grid = temp_maze.build_pattern()
+            if temp_maze.validate_pattern_size():
+                self.pattern = new_pattern
+                self.generate_maze()
+            else:
+                self.display_maze()
+                min_w = len(temp_maze.pattern_grid[0]) + 2
+                min_h = len(temp_maze.pattern_grid) + 2
+                print(f"Pattern '{new_pattern}' too large!")
+                print(f"Requires at least WIDTH={min_w} HEIGHT={min_h}\n")
+        except KeyboardInterrupt:
+            print('\nProgram stopped by user. Goodbye!')
+            exit(1)
+
+    def resize_width_and_height(self):
+        """Resizing dimensions of maze, validate and regenerate maze."""
+        while True:
+            try:
+                new_width = int(input('Enter new width: ').strip())
+                new_height = int(input('Enter new height :').strip())
+            except ValueError:
+                print('Width and Height must be a number')
+                continue
+            except KeyboardInterrupt:
+                print('\nProgram stopped by user. Goodbye!')
+                exit(1)
+            if new_width <= 0 or new_height <= 0:
+                print("Width and Height must be greater than 0")
+                continue
+            temp_maze = MazeGenerator(
+                [], new_width, new_height,
+                self.entry, self.exit, self.perfect,
+                self.pattern, self.seed
+            )
+            temp_maze.pattern_grid = temp_maze.build_pattern()
+            if temp_maze.validate_pattern_size():
+                self.width = new_width
+                self.height = new_height
+                self.entry = {'x': 0, 'y': 0}
+                self.exit = {'x': self.width - 1, 'y': self.height - 1}
+                self.generate_maze()
+                return
+            else:
+                self.display_maze()
+                min_w = len(temp_maze.pattern_grid[0]) + 2
+                min_h = len(temp_maze.pattern_grid) + 2
+                print(f"Maze too small for {self.pattern} pattern.")
+                print(f"Requires at least WIDTH={min_w} HEIGHT={min_h}\n")
+                return
 
     def display_menu(self) -> None:
         """
@@ -243,7 +350,9 @@ class Renderer:
             3. Rotate maze colors.
             4. Show Path with animation
             5. Switch algorithm (DFS/PRIM)
-            6. Quit the program.
+            6. Change Pattern (Default 42)
+            7. Resize Maze Width/Height.
+            8. Quit the program.
             User input is validated to ensure a correct option is selected.
         """
         while True:
@@ -254,16 +363,18 @@ class Renderer:
             print("4. Show Path with animation")
             print(f"5. Switch algorithm(DFS/PRIM)"
                   f"(current: {self.algorithm.upper()})")
-            print("6. Quit")
+            print("6. Change Pattern (Default 42)")
+            print("7. Resize Maze Width/Height")
+            print("8. Quit")
             try:
-                nb = input("Choice? (1-6): ")
+                nb = input("Choice? (1-8): ")
                 operation = int(nb)
             except ValueError:
                 self.display_maze()
-                print(f"enter a valid number (1-6) ('{nb}' not a number)")
+                print(f"enter a valid number (1-8) ('{nb}' not a number)")
                 continue
-            except BaseException:
-                print("\nProgram has been stopped")
+            except KeyboardInterrupt:
+                print("\nProgram stopped by user. Goodbye!")
                 break
             if (operation == 1):
                 self.animate_generation()
@@ -282,12 +393,17 @@ class Renderer:
                 self.algorithm = "prim" if self.algorithm == "dfs" else "dfs"
                 self.display_maze()
                 print(f"Algorithm switched to {self.algorithm.upper()}")
-            elif (operation == 6):
-                print('Good, Bye!')
+                print("\n--------------------------------")
+            elif operation == 6:
+                self.change_pattern()
+            elif operation == 7:
+                self.resize_width_and_height()
+            elif (operation == 8):
+                print("Goodbye!")
                 break
             else:
                 self.display_maze()
-                print("enter a valid number (1-6)")
+                print("enter a valid number (1-8)")
 
     def show_hide_path(self) -> None:
         """

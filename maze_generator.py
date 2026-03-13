@@ -28,19 +28,17 @@ class MazeGenerator:
         self.entry = entry
         self.exit = exit
         self.perfect = perfect
-        self.pattern = '42' if not pattern else pattern
+        self.pattern = pattern or '42'
         self.seed = seed
         self.visited: list[list[bool]] = [
             [False] * self.width for _ in range(self.height)
         ]
         self.solution_path: list[str] = []
         self.mask: set[tuple[int, int]] = set()
+        self.pattern_grid: list[list[int]] = []
 
     def build_pattern(self) -> list[list[int]]:
         """Build the combined pattern grid for the current pattern string."""
-        if not self.pattern.isalnum():
-            print('Pattern must contain only alphanemuric')
-            exit(1)
 
         if self.pattern != '42':
             pattern_grid = PATTERNS_FONTS
@@ -65,10 +63,7 @@ class MazeGenerator:
         all pattern cells as blocked for DFS.
         """
 
-        if self.width < 9 or self.height < 7:
-            print('maze width and hieght samll for 42 patter')
-            exit(1)
-        pattern_grid = self.build_pattern()
+        pattern_grid = self.pattern_grid
         pattern_height = len(pattern_grid)
         pattern_width = len(pattern_grid[0])
         start_row = self.height // 2 - pattern_height // 2
@@ -106,7 +101,7 @@ class MazeGenerator:
 
         if self.pattern == '42':
             return
-        pattern_grid = self.build_pattern()
+        pattern_grid = self.pattern_grid
         pattern_height = len(pattern_grid)
         pattern_width = len(pattern_grid[0])
         start_row = self.height // 2 - pattern_height // 2
@@ -147,18 +142,25 @@ class MazeGenerator:
             print('Error: exit coordinates are inside the pattern.')
             exit(1)
 
-    def validate_pattern_size(self) -> None:
+    def validate_pattern_size(self) -> bool:
         """Validate that the maze is large enough to fit the pattern."""
 
-        pattern_grid = self.build_pattern()
+        pattern_grid = self.pattern_grid
         p_height = len(pattern_grid)
         p_width = len(pattern_grid[0])
         min_height = p_height + 2
         min_width = p_width + 2
         if self.height < min_height or self.width < min_width:
-            print('Maze too small for this pattern.')
-            print(f'Minimum maze size required: '
-                  f'WIDTH={min_width}, HEIGHT={min_height}')
+            return False
+        return True
+
+    def check_pattern_size(self) -> None:
+        if not self.validate_pattern_size():
+            pattern_grid = self.pattern_grid
+            min_w = len(pattern_grid[0]) + 2
+            min_h = len(pattern_grid) + 2
+            print(f'Maze too small for {self.pattern} pattern.')
+            print(f'Minimum size required: WIDTH={min_w} HEIGHT={min_h}')
             exit(1)
 
     def dfs(
@@ -167,21 +169,24 @@ class MazeGenerator:
     ) -> None:
         """Generate maze using iterative DFS recursive backtracker."""
 
-        self.validate_pattern_size()
-        self.build_pattern()
+        self.pattern_grid = self.build_pattern()
+        self.check_pattern_size()
         self.pattern_mask()
         self.validate_entry_exit()
+        if self.seed is None:
+            self.seed = random.randint(1, 99999)
+        random.seed(self.seed)
+        while True:
+            curr_cell_row = random.randint(0, self.height - 1)
+            curr_cell_col = random.randint(0, self.width - 1)
+            if (curr_cell_row, curr_cell_col) not in self.mask:
+                break
+
         stack = []
-        curr_cell_row = random.randint(0, self.height - 1)
-        curr_cell_col = random.randint(0, self.width - 1)
         curr_cell = (curr_cell_row, curr_cell_col)
         stack.append(curr_cell)
         self.visited[curr_cell_row][curr_cell_col] = True
-        if self.seed:
-            random.seed(self.seed)
-        else:
-            self.seed = random.randint(1, 9999999)
-            random.seed(self.seed)
+
         while stack:
             curr_cell_neighbors = self.neighbors_cells(*curr_cell)
             if curr_cell_neighbors:
@@ -205,11 +210,13 @@ class MazeGenerator:
     def prim(self, callback: Optional[Callable] = None) -> None:
         """Generate maze using Prim's algorithm."""
 
-        self.validate_pattern_size()
-        self.build_pattern()
+        self.pattern_grid = self.build_pattern()
+        self.check_pattern_size()
         self.pattern_mask()
         self.validate_entry_exit()
-
+        if self.seed is None:
+            self.seed = random.randint(1, 99999)
+        random.seed(self.seed)
         frontier = []
         while True:
             start_row = random.randint(0, self.height - 1)

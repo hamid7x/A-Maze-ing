@@ -1,7 +1,5 @@
 import sys
-from grid import Grid
 from config_parser import ConfigParser
-from maze_generator import MazeGenerator
 from renderer import Renderer
 from typing import cast, Optional
 
@@ -19,18 +17,11 @@ if __name__ == "__main__":
         perfect = cast(bool, config_parser.get_val("perfect"))
         pattern = cast(str, config_parser.get_val("pattern"))
         seed = cast(Optional[int], config_parser.get_val("seed"))
-        grid = Grid(width, height)
-        grid.build_grid()
-        maze_generator: MazeGenerator = MazeGenerator(
-            grid.grid, width, height, entry, exit, perfect, pattern, seed)
-        maze_generator.dfs()
-        maze_generator.bfs()
-        maze_generator.write_output(output_file)
         render: Renderer = Renderer(
             width, height, output_file, perfect, pattern, seed)
-        render.get_info_from_file()
-        render.show_hide_path()
-        render.display_maze()
+        render.entry = entry
+        render.exit = exit
+        render.generate_maze()
         render.display_menu()
     elif (size > 2):
         print("one argument required")
