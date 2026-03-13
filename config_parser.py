@@ -10,13 +10,17 @@ class ConfigParser:
 
     def parsing_file(self) -> None:
         try:
+            if (self.filename.lower().endswith(".py")):
+                print("Python files are not allowed")
+                sys.exit(1)
             with open(self.filename, 'r') as file:
                 for i in file:
                     line = i.strip().lower()
                     if (not line or line[0] == "#"):
                         continue
                     lst = [i.strip() for i in line.split("=")]
-                    if (len(lst) > 2 or "=" not in line):
+                    if (len(lst) > 2 or "=" not in line
+                       or line.startswith("=")):
                         print("Error: invalid format in config file")
                         sys.exit(1)
                     constants = ["width", "height", "entry", "exit",
@@ -58,6 +62,12 @@ class ConfigParser:
         except FileNotFoundError:
             print("Error: file not found")
             sys.exit(1)
+        except IsADirectoryError:
+            print("this is a directory not a file")
+            sys.exit(1)
+        except Exception as err:
+            print(err)
+            sys.exit(1)
 
     def is_valid_data(self) -> None:
         for key, val in self.file_data.items():
@@ -84,6 +94,9 @@ class ConfigParser:
                 if (val == ""):
                     print("Error: file name cannot be empty")
                     sys.exit(1)
+                elif (val.lower().endswith(".py")):
+                    print("Python files are not allowed")
+                    sys.exit(1)
             if (key == "perfect"):
                 if (val == "true" or val == "1"):
                     self.file_data[key] = True
@@ -100,7 +113,7 @@ class ConfigParser:
                         sys.exit(1)
                     if (len(coord) > 2):
                         print("Error: coordinates must be",
-                              "just to integers ex (1,1)")
+                              "just tow integers ex (1,1)")
                         sys.exit(1)
                     self.file_data.update(
                         {key: {"x": int(coord[0]), "y": int(coord[1])}})
