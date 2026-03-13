@@ -94,6 +94,9 @@ class ConfigParser:
                 if (val == ""):
                     print("Error: file name cannot be empty")
                     sys.exit(1)
+                elif (val.lower().endswith(".py")):
+                    print("Python files are not allowed")
+                    sys.exit(1)
             if (key == "perfect"):
                 if (val == "true" or val == "1"):
                     self.file_data[key] = True
@@ -110,7 +113,7 @@ class ConfigParser:
                         sys.exit(1)
                     if (len(coord) > 2):
                         print("Error: coordinates must be",
-                              "just to integers ex (1,1)")
+                              "just tow integers ex (1,1)")
                         sys.exit(1)
                     self.file_data.update(
                         {key: {"x": int(coord[0]), "y": int(coord[1])}})
