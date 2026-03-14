@@ -65,6 +65,7 @@ class Renderer:
         self.animating: bool = False
         self.algorithm: str = "dfs"
         self.curr_cell: Optional[tuple[int, int]] = None
+        self.animation_speed = 0.03
 
     def get_info_from_file(self) -> None:
         """
@@ -203,6 +204,26 @@ class Renderer:
         if maze.size_warning:
             print(maze.size_warning)
 
+    def change_animation_speed(self) -> None:
+        """Change animation speed."""
+        print(f"Current speed {self.animation_speed}")
+        print(f"Enter value bettween 0.0 (instant) and 1.0 (very slow)")
+        try:
+            speed = float(input('Speed: ').strip())
+            if 0.0 <= speed <= 1.0:
+                self.animation_speed = speed
+                self.display_maze()
+            else:
+                self.display_maze()
+                print("Speed must be between 0.0 and 1.0")
+        except ValueError:
+            self.display_maze()
+            print('Speed must be a valid number between 0.0 and 1.0')
+        except KeyboardInterrupt:
+            print('\nProgram stoped by user')
+            exit(1)
+            
+    
     def animate_generation(self) -> None:
         """Animate maze generation by redrawing after each wall break."""
 
@@ -222,7 +243,7 @@ class Renderer:
             def callback(curr_row: int, curr_col: int) -> None:
                 self.curr_cell = (curr_row, curr_col)
                 self.display_maze()
-                time.sleep(0.03)
+                time.sleep(self.animation_speed)
             if self.algorithm == 'dfs':
                 maze.dfs(callback=callback)
             else:
@@ -255,7 +276,7 @@ class Renderer:
             for d in self.path.strip():
                 self.draw_path[r][c] = d
                 self.display_maze()
-                time.sleep(0.05)
+                time.sleep(self.animation_speed)
                 if d == "N":
                     r -= 1
                 elif d == "S":
@@ -354,7 +375,8 @@ class Renderer:
                   f"(current: {self.algorithm.upper()})")
             print("6. Change Pattern (Default 42)")
             print("7. Resize Maze Width/Height")
-            print("8. Quit")
+            print("8. Change animation speed")
+            print("9. Quit")
             try:
                 nb = input("Choice? (1-8): ")
                 operation = int(nb)
@@ -386,7 +408,9 @@ class Renderer:
                 self.change_pattern()
             elif operation == 7:
                 self.resize_width_and_height()
-            elif (operation == 8):
+            elif operation == 8:
+                self.change_animation_speed()
+            elif (operation == 9):
                 print("Goodbye!")
                 break
             else:
