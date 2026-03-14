@@ -18,9 +18,7 @@ if __name__ == "__main__":
         pattern = cast(str, config_parser.get_val("pattern"))
         seed = cast(Optional[int], config_parser.get_val("seed"))
         render: Renderer = Renderer(
-            width, height, output_file, perfect, pattern, seed)
-        render.entry = entry
-        render.exit = exit
+            width, height, entry, exit, output_file, perfect, pattern, seed)
         render.generate_maze()
         render.display_menu()
     elif (size > 2):
