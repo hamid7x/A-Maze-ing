@@ -11,7 +11,6 @@ from hollow_cells import HOLLOW_CELLS
 class MazeGenerator:
     def __init__(
         self,
-        grid: list[list[int]],
         width: int,
         height: int,
         entry: dict[str, int],
@@ -20,9 +19,8 @@ class MazeGenerator:
         pattern: str,
         seed: Optional[int]
     ) -> None:
-        """Initialize the MazeGenerator with grid, dimensions, and config."""
+        """Initialize the MazeGenerator with grid, dimensions, and config"""
 
-        self.grid = grid
         self.width = width
         self.height = height
         self.entry = entry
@@ -30,15 +28,17 @@ class MazeGenerator:
         self.perfect = perfect
         self.pattern = pattern or '42'
         self.seed = seed
+        self.grid = [[15] * self.width for _ in range(self.height)]
         self.visited: list[list[bool]] = [
             [False] * self.width for _ in range(self.height)
         ]
         self.solution_path: list[str] = []
         self.mask: set[tuple[int, int]] = set()
         self.pattern_grid: list[list[int]] = []
+        self.size_warning: str = ""
 
     def build_pattern(self) -> list[list[int]]:
-        """Build the combined pattern grid for the current pattern string."""
+        """Build the combined pattern grid for the current pattern string"""
 
         if self.pattern != '42':
             pattern_grid = PATTERNS_FONTS
@@ -60,7 +60,7 @@ class MazeGenerator:
     def pattern_mask(self) -> None:
         """
         Build the mask set by marking
-        all pattern cells as blocked for DFS.
+        all pattern cells as blocked for DFS
         """
 
         pattern_grid = self.pattern_grid
@@ -74,7 +74,7 @@ class MazeGenerator:
                     self.mask.add((start_row + p_row, start_col + p_col))
 
     def break_wall(self, c_row: int, c_col: int, direction: int) -> None:
-        """Break the wall between current cell and its neighbor."""
+        """Break the wall between current cell and its neighbor"""
 
         d_row, d_col = DIRECTIONS[direction]
         n_row, n_col = c_row + d_row, c_col + d_col
@@ -84,7 +84,7 @@ class MazeGenerator:
     def neighbors_cells(
         self, c_row: int, c_col: int
     ) -> list[tuple[int, int, int]]:
-        """Return unvisited, unmasked neighbors of the current cell."""
+        """Return unvisited, unmasked neighbors of the current cell"""
 
         neighbors = []
         for direction, (d_row, d_col) in DIRECTIONS.items():
@@ -97,9 +97,9 @@ class MazeGenerator:
         return neighbors
 
     def hollow_pattern(self) -> None:
-        """Open walls inside hollow areas of pattern characters."""
+        """Open walls inside hollow areas of pattern characters"""
 
-        if self.pattern == '42':
+        if self.pattern == '42' or not self.pattern_grid:
             return
         pattern_grid = self.pattern_grid
         pattern_height = len(pattern_grid)
@@ -131,37 +131,77 @@ class MazeGenerator:
                             if n_wall:
                                 self.grid[n_grid_row][n_grid_col] &= ~opp
 
+    def get_min_dimensions(self) -> tuple[int, int]:
+        """
+        Return minimum width and height
+        required to fit the current pattern
+        """
+
+        min_w = len(self.pattern_grid[0]) + 4
+        min_h = len(self.pattern_grid) + 4
+        return min_w, min_h
+
+    def print_pattern_too_large(self, pattern_name: str) -> None:
+        """Print error message when pattern is too large for the maze"""
+
+        min_w, min_h = self.get_min_dimensions()
+        print(f"Pattern '{pattern_name}' too large!")
+        print(f"Requires at least WIDTH={min_w} HEIGHT={min_h}\n")
+
     def validate_entry_exit(self) -> None:
-        """Validate that entry and exit do not fall inside the pattern mask."""
+        """Validate that entry and exit do not fall inside the pattern mask"""
+
         entry_cell = (self.entry['y'], self.entry['x'])
         exit_cell = (self.exit['y'], self.exit['x'])
         if entry_cell in self.mask:
-            print('Error: entry coordinates are inside the pattern.')
+            print('Error: entry coordinates are inside the pattern')
             exit(1)
         if exit_cell in self.mask:
-            print('Error: exit coordinates are inside the pattern.')
+            print('Error: exit coordinates are inside the pattern')
             exit(1)
 
     def validate_pattern_size(self) -> bool:
-        """Validate that the maze is large enough to fit the pattern."""
+        """Validate that the maze is large enough to fit the pattern"""
 
-        pattern_grid = self.pattern_grid
-        p_height = len(pattern_grid)
-        p_width = len(pattern_grid[0])
-        min_height = p_height + 2
-        min_width = p_width + 2
+        min_width, min_height = self.get_min_dimensions()
         if self.height < min_height or self.width < min_width:
             return False
         return True
 
-    def check_pattern_size(self) -> None:
+    def check_pattern_size(self) -> bool:
+        """Check pattern size and exit with error message if too large"""
+
         if not self.validate_pattern_size():
-            pattern_grid = self.pattern_grid
-            min_w = len(pattern_grid[0]) + 2
-            min_h = len(pattern_grid) + 2
-            print(f'Maze too small for {self.pattern} pattern.')
-            print(f'Minimum size required: WIDTH={min_w} HEIGHT={min_h}')
-            exit(1)
+            min_w, min_h = self.get_min_dimensions()
+            self.size_warning = (
+                f"\033[38;5;226mWarning: Maze too small"
+                f"to display '{self.pattern}'\n"
+                f"Requires at least WIDTH={min_w} HEIGHT={min_h}\033[0m\n"
+            )
+            self.pattern_grid = []
+            self.mask = set()
+            return False
+        return True
+
+    def build_hollow_set(self) -> set[tuple[int, int]]:
+        """
+            Return absolute grid positions
+            of all hollow cells in the pattern.
+        """
+
+        hollow_set: set[tuple[int, int]] = set()
+        pattern_height = len(self.pattern_grid)
+        pattern_width = len(self.pattern_grid[0])
+        start_row = self.height // 2 - pattern_height // 2
+        start_col = self.width // 2 - pattern_width // 2
+        for char_index, char in enumerate(self.pattern):
+            if char in HOLLOW_CELLS:
+                char_col_offset = char_index * 6
+                for p_row, p_col in HOLLOW_CELLS[char]:
+                    abs_row = start_row + p_row
+                    abs_col = start_col + p_col + char_col_offset
+                    hollow_set.add((abs_row, abs_col))
+        return hollow_set
 
     def dfs(
         self,
@@ -170,16 +210,20 @@ class MazeGenerator:
         """Generate maze using iterative DFS recursive backtracker."""
 
         self.pattern_grid = self.build_pattern()
-        self.check_pattern_size()
-        self.pattern_mask()
-        self.validate_entry_exit()
+        pattern_exist = self.check_pattern_size()
+        if pattern_exist:
+            self.pattern_mask()
+            self.validate_entry_exit()
         if self.seed is None:
             self.seed = random.randint(1, 99999)
         random.seed(self.seed)
+        
+        hollow_set = self.build_hollow_set() if pattern_exist else set()
         while True:
             curr_cell_row = random.randint(0, self.height - 1)
             curr_cell_col = random.randint(0, self.width - 1)
-            if (curr_cell_row, curr_cell_col) not in self.mask:
+            if ((curr_cell_row, curr_cell_col) not in self.mask
+                    and (curr_cell_row, curr_cell_col) not in hollow_set):
                 break
 
         stack = []
@@ -211,17 +255,20 @@ class MazeGenerator:
         """Generate maze using Prim's algorithm."""
 
         self.pattern_grid = self.build_pattern()
-        self.check_pattern_size()
-        self.pattern_mask()
-        self.validate_entry_exit()
+        pattern_exist = self.check_pattern_size()
+        if pattern_exist:
+            self.pattern_mask()
+            self.validate_entry_exit()
         if self.seed is None:
             self.seed = random.randint(1, 99999)
         random.seed(self.seed)
         frontier = []
+        hollow_set = self.build_hollow_set() if pattern_exist else set()
         while True:
             start_row = random.randint(0, self.height - 1)
             start_col = random.randint(0, self.width - 1)
-            if (start_row, start_col) not in self.mask:
+            if ((start_row, start_col) not in self.mask
+                    and (start_row, start_col) not in hollow_set):
                 break
 
         self.visited[start_row][start_col] = True
@@ -293,7 +340,6 @@ class MazeGenerator:
             for n_row, n_col in self.find_neighbors(*curr_cell, distances):
                 queue.append((n_row, n_col))
                 distances[n_row][n_col] = distances[c_row][c_col] + 1
-
         e_row = self.entry['y']
         e_col = self.entry['x']
         c_row, c_col = curr_cell
@@ -312,13 +358,32 @@ class MazeGenerator:
                             break
         self.solution_path = list(reversed(self.solution_path))
 
-    def write_output(self, filepath: str) -> None:
-        """Write the maze grid, entry, exit and solution path to a file."""
+    def generate(
+                 self,
+                 algorithm: str = 'dfs',
+                 output_file: str = 'maze.txt'
+                 ) -> None:
+        """Generate and solve the maze and write"""
+        """the maze in output file in one call"""
 
-        with open(filepath, 'w') as f:
-            for row in self.grid:
-                f.write(''.join(format(col, 'X') for col in row) + '\n')
-            f.write('\n')
-            f.write(f"{self.entry['x']},{self.entry['y']}\n")
-            f.write(f"{self.exit['x']},{self.exit['y']}\n")
-            f.write(''.join(self.solution_path))
+        if algorithm == 'dfs':
+            self.dfs()
+        else:
+            self.prim()
+        self.bfs()
+        self.write_output(output_file)
+
+    def write_output(self, filepath: str) -> None:
+        """Write the maze grid, entry, exit and solution path to a file"""
+
+        try:
+            with open(filepath, 'w') as f:
+                for row in self.grid:
+                    f.write(''.join(format(col, 'X') for col in row) + '\n')
+                f.write('\n')
+                f.write(f"{self.entry['x']},{self.entry['y']}\n")
+                f.write(f"{self.exit['x']},{self.exit['y']}\n")
+                f.write(''.join(self.solution_path))
+        except IsADirectoryError:
+            print("Output file cannot be directory")
+            exit(1)
