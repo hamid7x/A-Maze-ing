@@ -8,7 +8,7 @@ build:
 install:
 	pip install --user virtualenv
 	python3 -m virtualenv venv  
-	venv/bin/pip install dist/mazegen-1.0.0-py3-none-any.whl
+	venv/bin/pip install dist/*.whl
 	venv/bin/pip install flake8 mypy
 
 run:
@@ -28,7 +28,7 @@ clean-venv:
 	rm -rf venv
 lint:
 	venv/bin/flake8 .
-	venv/bin/mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
+	venv/bin/mypy .  --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
 
 lint-strict:
 	venv/bin/flake8 .
