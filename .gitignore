@@ -1,3 +1,9 @@
-__pycache__
+dist/
+build/
+__pycache__/
+mazegen.egg-info/
+venv/
+test.py
+test.txt
 maze.txt
-.mypy_cache
+venv

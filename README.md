@@ -1,14 +1,22 @@
-*This project has been created as part of the 42 curriculum by hamid, abdo.*
+*This project has been created as part of the 42 curriculum by houkaamo, aoukaamo.*
 
-# 🌀 A-Maze-ing
-
-A Python maze generator and terminal visualizer. Generates perfect or imperfect mazes from a config file, renders them with extended ASCII art, and finds the shortest path from entry to exit.
-
----
+# A-Maze-ing
 
 ## Description
 
-A-Maze-ing generates random mazes using **DFS (Recursive Backtracker)** or **Prim's Algorithm**. Each maze is encoded in a hexadecimal wall format and displayed interactively in the terminal. A hidden **"42" pattern** is embedded in every maze using fully-closed cells.
+A-Maze-ing is a terminal-based maze generator and solver written in Python 3.10+. The program reads a configuration file to set up maze parameters, generates a maze using either a Depth-First Search (DFS) or Prim's algorithm, embeds a visual pattern (default: "42") in the center of the maze, solves it using BFS, and renders it in the terminal with ANSI colors and block characters.
+
+The project also provides a reusable Python package `mazegen` that exposes the `MazeGenerator` class for use in any Python project.
+
+**Key features:**
+- Maze generation with DFS (recursive backtracker) or Prim's algorithm
+- Embedded text pattern in the maze center (default "42", or any alphanumeric string)
+- BFS pathfinding to find the shortest solution
+- Perfect or imperfect maze modes (with or without loops)
+- Reproducible mazes via seed
+- Animated generation and path rendering in the terminal
+- Interactive menu to regenerate, change colors, switch algorithms, resize, and more
+- Reusable `mazegen` package installable via pip
 
 ---
 
@@ -16,266 +24,228 @@ A-Maze-ing generates random mazes using **DFS (Recursive Backtracker)** or **Pri
 
 ### Requirements
 
-```
-Python 3.10+
-pip
-```
+- Python 3.10 or later
+- pip
+- virtualenv (installed automatically via `make install`)
 
-### Install
+### Setup and Run
 
 ```bash
-git clone https://github.com/hamid7x/A-Maze-ing.git
-cd A-Maze-ing
+# Step 1 — Build the package
+make build
+
+# Step 2 — Install dependencies in a virtualenv
 make install
+
+# Step 3 — Run the program
+make run
 ```
 
-### Run
+### Other Commands
 
 ```bash
-make run
-# or directly:
+make debug        # Run in debug mode with pdb
+make lint         # Run flake8 and mypy checks
+make lint-strict  # Run mypy with --strict flag
+make clean        # Remove __pycache__, .mypy_cache, build artifacts
+make clean-venv   # Remove the virtual environment
+```
+
+### Configuration File
+
+The program requires a configuration file as its only argument:
+
+```bash
 python3 a_maze_ing.py config.txt
 ```
 
-### Other commands
+**Config file format** (key=value, case-insensitive):
 
-```bash
-make lint        # run flake8 + mypy
-make debug       # run with pdb debugger
-make clean       # remove __pycache__ and temp files
 ```
+WIDTH=20
+HEIGHT=15
+ENTRY=0,0
+EXIT=19,14
+OUTPUT_FILE=maze.txt
+PERFECT=True
+SEED=12345
+PATTERN=42
+```
+
+| Key         | Type    | Required | Description                                      |
+|-------------|---------|----------|--------------------------------------------------|
+| WIDTH       | int     | Yes      | Number of columns in the maze (> 0)             |
+| HEIGHT      | int     | Yes      | Number of rows in the maze (> 0)                |
+| ENTRY       | x,y     | Yes      | Entry cell coordinates                          |
+| EXIT        | x,y     | Yes      | Exit cell coordinates                           |
+| OUTPUT_FILE | string  | Yes      | Path to the output file                         |
+| PERFECT     | bool    | Yes      | True = no loops, False = imperfect maze         |
+| SEED        | int     | No       | Random seed for reproducibility                 |
+| PATTERN     | string  | No       | Alphanumeric pattern to embed (default: 42)     |
+
+Lines starting with `#` are treated as comments and ignored.
 
 ---
 
-## Configuration File
+## Maze Generation Algorithm
 
-The config file uses `KEY=VALUE` pairs. Lines starting with `#` are comments.
+### Primary: Depth-First Search (DFS) — Recursive Backtracker
 
-| Key           | Description                     | Example                |
-|---------------|---------------------------------|------------------------|
-| `WIDTH`       | Maze width in cells             | `WIDTH=20`             |
-| `HEIGHT`      | Maze height in cells            | `HEIGHT=15`            |
-| `ENTRY`       | Entry coordinates (x,y)         | `ENTRY=0,0`            |
-| `EXIT`        | Exit coordinates (x,y)          | `EXIT=19,14`           |
-| `OUTPUT_FILE` | Output filename                 | `OUTPUT_FILE=maze.txt` |
-| `PERFECT`     | One path between entry and exit | `PERFECT=True`         |
-| `SEED`        | Reproducibility seed            | `SEED=42`              |
-| `ALGORITHM`   | `dfs` or `prim`                 | `ALGORITHM=dfs`        |
+The DFS algorithm works as follows:
+1. Start from a random unmasked, non-hollow cell
+2. Mark it as visited and push it to a stack
+3. Randomly pick an unvisited neighbor, break the wall, and move to it
+4. If no unvisited neighbors exist, backtrack by popping the stack
+5. Repeat until the stack is empty
 
----
+**Why DFS?**
+- Produces long, winding corridors — visually interesting and challenging mazes
+- Simple to implement iteratively with a stack
+- Guarantees all reachable cells are visited (perfect maze property)
+- Works naturally around masked pattern cells
 
-## Algorithm
+### Secondary: Prim's Algorithm
 
-We use **DFS Recursive Backtracker** as the default algorithm.
-
-It starts from the entry cell, carves passages by visiting unvisited neighbours randomly, and backtracks when stuck. This guarantees every cell is visited and produces a perfect maze with long winding corridors.
-
-**Why DFS?** It's intuitive, produces visually interesting mazes, and guarantees full connectivity by construction.
-
-**Prim's algorithm** is also supported via `ALGORITHM=prim`. It grows the maze from a seed cell using a random frontier list, producing mazes with more branching.
-
----
-
-## Project Structure
-
-```
-A-Maze-ing/
-├── a_maze_ing.py        ← main entry point
-├── config_parser.py     ← reads and validates config.txt
-├── grid.py              ← builds the initial full closed grid
-├── renderer.py          ← terminal ASCII renderer + interactive menu
-├── maze_generator.py    ← DFS, BFS, 42 pattern, output writer
-├── config.txt           ← default configuration
-├── Makefile
-├── pyproject.toml       ← pip packaging
-└── tests/
-    ├── test_generator.py
-    └── test_config_parser.py
-```
-
----
-
-## Code Architecture
-
-### How everything connects
-
-```python
-from config_parser import ConfigParser
-from grid import Grid
-from maze_generator import MazeGenerator
-from renderer import Renderer
-
-# abdo — reads config
-config = ConfigParser("config.txt")
-config.parse()
-
-# abdo — builds full closed grid (all cells = 0xF)
-grid = Grid(config.get("WIDTH"), config.get("HEIGHT"))
-grid.build()
-
-# hamid — receives grid, carves maze, finds path, writes output
-gen = MazeGenerator(grid.cells, config.get("ENTRY"), config.get("EXIT"), seed=42)
-gen.generate()
-gen.solve()
-gen.embed_42()
-gen.write_output(config.get("OUTPUT_FILE"))
-
-# abdo — renders the result
-renderer = Renderer(grid.cells, config.get("ENTRY"), config.get("EXIT"))
-renderer.solution = gen.solution
-renderer.render_loop(gen)
-```
-
----
-
-## Class Reference
-
-### `MazeGenerator` — hamid (`maze_generator.py`)
-
-```python
-class MazeGenerator:
-    def __init__(self, grid, entry, exit, seed=None, algorithm="dfs"):
-        self.grid      = grid      # 2D list[list[int]] — modified in place
-        self.entry     = entry     # (x, y)
-        self.exit      = exit      # (x, y)
-        self.seed      = seed      # int or None
-        self.algorithm = algorithm # "dfs" or "prim"
-        self.solution  = []        # list of "N"/"E"/"S"/"W" steps
-
-    def generate(self)              # runs DFS or Prim to carve the maze
-    def _dfs(self)                  # private — iterative DFS backtracker
-    def _break_wall(self, x, y, d)  # private — removes wall between two cells
-    def _get_neighbours(self, x, y, visited)  # private — unvisited neighbours
-    def solve(self)                 # runs BFS to find shortest path
-    def _bfs(self)                  # private — BFS pathfinder
-    def embed_42(self)              # places "42" pattern into the grid
-    def write_output(self, filepath)# writes hex maze output file
-```
-
-### `ConfigParser` — abdo (`config_parser.py`)
-
-```python
-class ConfigParser:
-    def __init__(self, filepath)  # path to config.txt
-    def parse(self)               # reads file, fills self.config dict
-    def _validate(self)           # private — checks all required keys
-    def get(self, key)            # returns value for a given key
-```
-
-### `Grid` — abdo (`grid.py`)
-
-```python
-class Grid:
-    def __init__(self, width, height)
-    def build(self)               # creates grid — all cells = 0xF
-    def get_cell(self, x, y)      # returns bitmask at (x, y)
-    def set_cell(self, x, y, val) # sets bitmask at (x, y)
-```
-
-### `Renderer` — abdo (`renderer.py`)
-
-```python
-class Renderer:
-    def __init__(self, grid, entry, exit)
-    def render(self)              # prints maze to terminal
-    def render_loop(self, gen)    # interactive menu loop
-    def _draw_cell(self, x, y)   # private — draws one cell from bitmask
-    def toggle_path(self)         # show/hide solution path
-    def change_colour(self)       # cycle through wall colours
-```
+Available as an alternative via the interactive menu (option 5). Prim's picks randomly from a frontier list, producing mazes with more branches and shorter dead ends — a different aesthetic from DFS.
 
 ---
 
 ## Reusable Module
 
-The maze generation logic is packaged as a standalone pip-installable module.
+The `mazegen` package exposes the `MazeGenerator` class for use in any Python project.
 
-### Install
+### Installation
 
 ```bash
 pip install mazegen-1.0.0-py3-none-any.whl
 ```
 
-### Usage
+Or rebuild from source and install:
 
-```python
-from mazegen import MazeGenerator
-
-gen = MazeGenerator(grid, entry=(0,0), exit=(19,14), seed=42, algorithm="dfs")
-gen.generate()
-gen.solve()
-
-print(gen.grid)      # list[list[int]] — wall bitmask per cell
-print(gen.solution)  # ["S", "S", "E", "E", ...]
-print(gen.entry)     # (0, 0)
-print(gen.exit)      # (19, 14)
+```bash
+python3 -m build --no-isolation
+pip install dist/mazegen-1.0.0-py3-none-any.whl
 ```
 
-### Wall encoding
+### Basic Usage
 
-| Bit | Wall  | Value |
+```python
+from mazegen.maze_generator import MazeGenerator
+
+maze = MazeGenerator(
+    width=20,
+    height=15,
+    entry={'x': 0, 'y': 0},
+    exit={'x': 19, 'y': 14},
+    perfect=True,
+    pattern='42',
+    seed=12345
+)
+
+# Generate maze and solve it, write output to file
+maze.generate(algorithm='dfs', output_file='maze.txt')
+
+# Access maze structure
+print(maze.grid)           # 2D list of integers (bitmask walls)
+print(maze.solution_path)  # List of directions ['N', 'S', 'E', 'W']
+print(maze.seed)           # Seed used (useful if not specified)
+```
+
+### Custom Parameters
+
+```python
+# Use Prim's algorithm
+maze.generate(algorithm='prim', output_file='output.txt')
+
+# Use a custom pattern
+maze = MazeGenerator(
+    width=30, height=20,
+    entry={'x': 0, 'y': 0},
+    exit={'x': 29, 'y': 19},
+    perfect=False,
+    pattern='HELLO',
+    seed=None  # Random seed
+)
+maze.generate()
+```
+
+### Grid Format
+
+`maze.grid` is a 2D list of integers where each cell encodes its walls as a 4-bit bitmask:
+
+| Bit | Value | Wall  |
 |-----|-------|-------|
-| 0   | North | 1     |
-| 1   | East  | 2     |
-| 2   | South | 4     |
-| 3   | West  | 8     |
+| 0   | 1     | North |
+| 1   | 2     | South |
+| 2   | 4     | East  |
+| 3   | 8     | West  |
 
-`0xF` = all 4 walls present. `0x0` = no walls.
+A cell with value `15` (all bits set) has all walls intact. A cell with value `0` has no walls.
+
+### Accessing the Solution
+
+```python
+maze.bfs()  # Run BFS separately if needed
+path = maze.solution_path  # e.g. ['E', 'E', 'S', 'S', 'E']
+```
 
 ---
 
-## Team & Project Management
+## Team and Project Management
 
-### Roles
+### Team Members
 
-| Member  | Responsibilities                                              |
-|---------|---------------------------------------------------------------|
-| `hamid` | `MazeGenerator` class — DFS, Prim, BFS solver, 42 pattern, hex output file, pip package |
-| `abdo`  | `ConfigParser`, `Grid`, `Renderer` — ASCII display, interactive menu, main entry point |
-
-### The handoff contract
-
-```
-abdo  provides → grid.cells       list[list[int]] (all 0xF)
-hamid receives → grid.cells       modifies it in place
-hamid provides → gen.solution     list of N/E/S/W steps
-abdo  reads    → gen.solution     to display the path overlay
-```
+| Member       | Role                                                                 |
+|--------------|----------------------------------------------------------------------|
+| houkaamo     | Maze generation algorithms (DFS, Prim), BFS pathfinding, pattern embedding, hollow cells, package structure |
+| aoukaamo  | Terminal renderer, animation system, config parser, interactive menu, project packaging |
 
 ### Planning
 
-| Week | hamid | abdo |
-|------|-------|------|
-| 1 | DFS generator + `_break_wall()` | Config parser + grid init |
-| 2 | BFS solver + wall coherence fixes | ASCII renderer |
-| 3 | Prim's algorithm + 42 pattern | Interactive menu + colour |
-| 4 | Hex output file + pip package | Main entry point wiring + tests |
+**Initial plan:**
+- Week 1: Config parser, basic maze generation (DFS), algorithm solver (BFS), terminal rendering, interactive menu
+- Week 2: Prim's algorithm, pattern embedding, animation, packaging, README
 
-### What worked well
-- Clean class separation made both parts independently testable
-- Agreeing on the `grid.cells` interface early meant no integration surprises
-- Using a seed from the start made debugging much easier
+**How it evolved:**
+The pattern embedding took significantly longer than expected due to hollow cell handling and the mask system. Animation and the interactive menu also required several iterations to fix edge cases (nested loops, grid sync issues). Packaging was added at the end and required refactoring imports and restructuring the codebase.
 
-### What could be improved
-- The "42" pattern placement was trickier than expected
-- More unit tests earlier would have caught wall coherence bugs sooner
+### What Worked Well
 
-### Tools used
-- VS Code for development
-- Claude (AI) — used to discuss algorithm design, wall encoding logic,
-  renderer architecture, and README structure. All generated content
-  was reviewed, tested, and fully understood before inclusion.
-- `pytest` for unit testing
-- `mypy` + `flake8` for static analysis
+- The bitmask grid representation made wall operations clean and efficient
+- The callback system for animation kept DFS/Prim decoupled from the renderer
+- Using `seed` made debugging reproducible — we could replay exact mazes
+- Separating `MazeGenerator` from `Renderer` made the reusable package straightforward
 
+### What Could Be Improved
+
+- The hollow cell system is hardcoded — a more generic approach would be better
+- Animation speed could be configurable via the menu
+- More algorithms (Kruskal's, Wilson's) could be added
+
+### Tools Used
+
+- **Python 3.10** — main language
+- **flake8** — code style linting
+- **mypy** — static type checking
+- **setuptools + build** — packaging
+- **pdb** — debugging
+- **Git** — version control
 ---
 
 ## Resources
 
-- [Maze generation algorithms — Jamis Buck](https://weblog.jamisbuck.org/2011/2/7/maze-generation-algorithm-recap)
-- [Maze generation — Wikipedia](https://en.wikipedia.org/wiki/Maze_generation_algorithm)
-- [Python typing module](https://docs.python.org/3/library/typing.html)
-- [PEP 257 — Docstrings](https://peps.python.org/pep-0257/)
-- [Python packaging guide](https://packaging.python.org/en/latest/tutorials/packaging-projects/)
-- [flake8 docs](https://flake8.pycqa.org/)
-- [mypy docs](https://mypy.readthedocs.io/)
+- [mazes for programmers — Jamis Buck's book](http://mazesforprogrammers.com/)
+- [Recursive backtracker (DFS) — Jamis Buck's blog](https://weblog.jamisbuck.org/2010/12/27/maze-generation-recursive-backtracking)
+- [Prim's algorithm for mazes — Jamis Buck's blog](http://weblog.jamisbuck.org/2011/1/10/maze-generation-prim-s-algorithm)
+- [Maze generation algorithms — Wikipedia](https://en.wikipedia.org/wiki/Maze_generation_algorithm)
+- [BFS pathfinding — Wikipedia](https://en.wikipedia.org/wiki/Breadth-first_search)
+- [ANSI escape codes — Wikipedia](https://en.wikipedia.org/wiki/ANSI_escape_code)
+
+
+### AI Usage
+
+Claude (Anthropic) was used as a development assistant throughout this project.
+Specifically for:
+- help understand concepts
+- make architectural decisions
+- and improve the overall structure of the code
