@@ -1,4 +1,3 @@
-from grid import Grid
 from maze_generator import MazeGenerator
 from typing import Optional
 import os
@@ -18,16 +17,18 @@ class Renderer:
             self,
             width: int,
             height: int,
+            entry: dict[str, int],
+            exit: dict[str, int],
             filename: str,
             perfect: bool,
             pattern: str,
             seed: Optional[int]
             ) -> None:
-        self.width: int = width
-        self.height: int = height
+        self.width = width
+        self.height = height
+        self.entry = entry
+        self.exit = exit
         self.grid: list[list[int]] = []
-        self.entry: dict[str, int] = {}
-        self.exit: dict[str, int] = {}
         self.path: str = ""
         self.draw_path: list[list[str | None]] = []
         self.wall_colors: list[str] = [
@@ -71,35 +72,33 @@ class Renderer:
 
             The file contains:
             - The maze grid encoded in hexadecimal values.
-            - Entry coordinates.
-            - Exit coordinates.
             - The solution path as directions (N, S, E, W).
         """
-        self.grid = []
-        with open(self.filename) as file:
-            lines: list = file.readlines()
-            for i in lines:
-                row: list[int] = []
-                line: str = i.strip()
-                if (not line):
-                    break
-                for c in line:
-                    row.append(int(c, 16))
-                self.grid.append(row)
-            i = 0
-            while (i < len(lines) and lines[i].strip()):
+        try:
+            self.grid = []
+            with open(self.filename) as file:
+                lines: list = file.readlines()
+                for i in lines:
+                    row: list[int] = []
+                    line: str = i.strip()
+                    if (not line):
+                        break
+                    for c in line:
+                        row.append(int(c, 16))
+                    self.grid.append(row)
+                i = 0
+                while (i < len(lines) and lines[i].strip()):
+                    i += 1
+                    continue
+                data: list[str] = []
                 i += 1
-                continue
-            data: list[str] = []
-            i += 1
-            while (i < len(lines)):
-                data.append(lines[i])
-                i += 1
-            entry_x, entry_y = data[0].split(",")
-            self.entry = {"x": int(entry_x), "y": int(entry_y)}
-            exit_x, exit_y = data[1].split(",")
-            self.exit = {"x": int(exit_x), "y": int(exit_y)}
-            self.path = data[2]
+                while (i < len(lines)):
+                    data.append(lines[i])
+                    i += 1
+                self.path = data[2] if len(data) > 2 else ""
+        except IsADirectoryError:
+            print("Output file cannot be directory")
+            exit(1)
 
     def display_maze(self) -> None:
         """
@@ -188,29 +187,21 @@ class Renderer:
     def generate_maze(self) -> None:
         """Generate maze without animation and display result."""
 
-        g = Grid(self.width, self.height)
-        g.build_grid()
-        self.grid = g.grid
         self.draw_path = [[None] * self.width for _ in range(self.height)]
         if not self.has_config_seed:
             self.seed = None
         maze = MazeGenerator(
-            self.grid, self.width, self.height,
+            self.width, self.height,
             self.entry, self.exit, self.perfect,
             self.pattern, self.seed
         )
-
-        if self.algorithm == 'dfs':
-            maze.dfs()
-        else:
-            maze.prim()
+        maze.generate(self.algorithm, self.filename)
         self.seed = maze.seed
-        maze.bfs()
-        maze.write_output(self.filename)
-
         self.get_info_from_file()
         self.show_hide_path()
         self.display_maze()
+        if maze.size_warning:
+            print(maze.size_warning)
 
     def animate_generation(self) -> None:
         """Animate maze generation by redrawing after each wall break."""
@@ -218,16 +209,15 @@ class Renderer:
         self.animating = True
         print("\033[?25l", end="", flush=True)
         try:
-            g = Grid(self.width, self.height)
-            g.build_grid()
-            self.grid = g.grid
             self.draw_path = [[None] * self.width for _ in range(self.height)]
             if not self.has_config_seed:
                 self.seed = random.randint(1, 99999)
             maze = MazeGenerator(
-                self.grid, self.width, self.height, self.entry,
+                self.width, self.height, self.entry,
                 self.exit, self.perfect, self.pattern, self.seed
             )
+
+            self.grid = maze.grid
 
             def callback(curr_row: int, curr_col: int) -> None:
                 self.curr_cell = (curr_row, curr_col)
@@ -237,16 +227,18 @@ class Renderer:
                 maze.dfs(callback=callback)
             else:
                 maze.prim(callback=callback)
-            self.seed = maze.seed
             maze.bfs()
             maze.write_output(self.filename)
+            self.seed = maze.seed
 
             self.get_info_from_file()
             self.show_hide_path()
             self.animating = False
-            self.display_maze()
+            self.animate_path()
+            if maze.size_warning:
+                print(maze.size_warning)
         except KeyboardInterrupt:
-            print("\nProgram stopped by user. Goodbye!")
+            print("\nProgram stopped by user")
             exit(1)
         finally:
             self.animating = False
@@ -273,7 +265,7 @@ class Renderer:
                 elif d == "E":
                     c += 1
         except KeyboardInterrupt:
-            print('\nProgram stopped by user. Goodbye!')
+            print('\nProgram stopped by user')
             exit(1)
         finally:
             print("\033[?25h", end="", flush=True)
@@ -288,7 +280,7 @@ class Renderer:
                 print("Pattern must contain only letters and numbers")
                 return
             temp_maze = MazeGenerator(
-                [], self.width, self.height,
+                self.width, self.height,
                 self.entry, self.exit,
                 self.perfect, new_pattern, self.seed
             )
@@ -298,10 +290,7 @@ class Renderer:
                 self.generate_maze()
             else:
                 self.display_maze()
-                min_w = len(temp_maze.pattern_grid[0]) + 2
-                min_h = len(temp_maze.pattern_grid) + 2
-                print(f"Pattern '{new_pattern}' too large!")
-                print(f"Requires at least WIDTH={min_w} HEIGHT={min_h}\n")
+                temp_maze.print_pattern_too_large(new_pattern)
         except KeyboardInterrupt:
             print('\nProgram stopped by user. Goodbye!')
             exit(1)
@@ -317,13 +306,13 @@ class Renderer:
                 print('Width and Height must be a number')
                 continue
             except KeyboardInterrupt:
-                print('\nProgram stopped by user. Goodbye!')
+                print('\nProgram stopped by user')
                 exit(1)
             if new_width <= 0 or new_height <= 0:
                 print("Width and Height must be greater than 0")
                 continue
             temp_maze = MazeGenerator(
-                [], new_width, new_height,
+                new_width, new_height,
                 self.entry, self.exit, self.perfect,
                 self.pattern, self.seed
             )
@@ -337,10 +326,7 @@ class Renderer:
                 return
             else:
                 self.display_maze()
-                min_w = len(temp_maze.pattern_grid[0]) + 2
-                min_h = len(temp_maze.pattern_grid) + 2
-                print(f"Maze too small for {self.pattern} pattern.")
-                print(f"Requires at least WIDTH={min_w} HEIGHT={min_h}\n")
+                temp_maze.print_pattern_too_large(self.pattern)
                 return
 
     def display_menu(self) -> None:
@@ -377,7 +363,7 @@ class Renderer:
                 print(f"enter a valid number (1-8) ('{nb}' not a number)")
                 continue
             except KeyboardInterrupt:
-                print("\nProgram stopped by user. Goodbye!")
+                print("\nProgram stopped by user")
                 break
             if (operation == 1):
                 self.animate_generation()
