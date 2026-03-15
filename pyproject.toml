@@ -1,17 +1,16 @@
-[build-system]
-requires = ["setuptools>=64", "wheel"]
-build-backend = "setuptools.build_meta"   
-
 [project]
 name = "mazegen"
-version = "1.0.0"
-description = "Terminal maze generator with DFS and Prim algorithms"
+version = "0.1.0"
+description = ""
 authors = [
-  {name = "Hamid", email = "hamid@example.com"},
-  {name = "Abdessamad", email = "abdessamadoukaamouch@example.com"}
+    {name = "Hamid Oukaamouch, Abdessamad Oukaamouch"}
 ]
+readme = "README.md"
 requires-python = ">=3.10"
+dependencies = [
+]
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["mazegen*"]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

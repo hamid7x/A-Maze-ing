@@ -217,7 +217,7 @@ class MazeGenerator:
         if self.seed is None:
             self.seed = random.randint(1, 99999)
         random.seed(self.seed)
-        
+
         hollow_set = self.build_hollow_set() if pattern_exist else set()
         while True:
             curr_cell_row = random.randint(0, self.height - 1)
