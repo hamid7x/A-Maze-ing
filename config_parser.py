@@ -12,13 +12,15 @@ class ConfigParser:
         try:
             with open(self.filename, 'r') as file:
                 for i in file:
-                    line = i.strip().lower()
+                    line = i.strip()
                     if (not line or line[0] == "#"):
                         continue
                     lst = [i.strip() for i in line.split("=", 1)]
                     if (len(lst) != 2 or line.startswith("=")):
                         print("Error: invalid format in config file")
                         sys.exit(1)
+                    lst[0] = lst[0].lower()
+                    print(lst)
                     constants = ["width", "height", "entry", "exit",
                                  "output_file", "perfect", "seed", "pattern"]
                     if (lst[0] not in constants):
@@ -91,9 +93,9 @@ class ConfigParser:
                     print("Error: file name cannot be empty")
                     sys.exit(1)
             if (key == "perfect"):
-                if (val == "true" or val == "1"):
+                if (val == "True" or val == "1"):
                     self.file_data[key] = True
-                elif (val == "false" or val == "0"):
+                elif (val == "False" or val == "0"):
                     self.file_data[key] = False
                 else:
                     print("Error: perfect must be a boolean")
