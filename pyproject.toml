@@ -1,0 +1,13 @@
+[project]
+name = "mazegen"
+version = "1.0.0"
+description = "Maze generator with DFS and Prim algorithms"
+authors = [
+    {name = "Hamid, Abdessamad"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
