@@ -1,11 +1,11 @@
-from constants import DIRECTIONS, OPPOSITE
-from constants import PATH_PARSER
+from .constants import DIRECTIONS, OPPOSITE
+from .constants import PATH_PARSER
 from collections import deque
 from typing import Optional, Callable
 import random
-from pattern_font import PATTERN_42_FONT
-from custom_pattern_font import PATTERNS_FONTS
-from hollow_cells import HOLLOW_CELLS
+from .pattern_font import PATTERN_42_FONT
+from .custom_pattern_font import PATTERNS_FONTS
+from .hollow_cells import HOLLOW_CELLS
 
 
 class MazeGenerator:

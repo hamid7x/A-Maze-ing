@@ -1,37 +1,29 @@
 CONFIG	= config.txt
 MAIN	= a_maze_ing.py
 
-
 build:
-	python3 -m build --no-isolation
+	poetry build
 
-install:
-	pip install --user virtualenv
-	python3 -m virtualenv venv  
-	venv/bin/pip install dist/*.whl
-	venv/bin/pip install flake8 mypy
+install: build
+	pip install dist/*.whl
+	pip install flake8 mypy
 
 run:
-	venv/bin/python $(MAIN) $(CONFIG)
+	python3 $(MAIN) $(CONFIG)
 
 debug:
-	venv/bin/python -m pdb $(MAIN) $(CONFIG)
+	python3 -m pdb $(MAIN) $(CONFIG)
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
-	find . -type d -name "*.egg-info" -exec rm -rf {} +
 	find . -type d -name "build" -exec rm -rf {} +
 	find . -type f -name "*.pyc" -exec rm -f {} +
 
-clean-venv:
-	rm -rf venv
+
 lint:
-	venv/bin/flake8 .
-	venv/bin/mypy .  --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
+	flake8 . --exclude test_env
+	mypy . --exclude test_env --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
 
-lint-strict:
-	venv/bin/flake8 .
-	venv/bin/mypy . --strict
 
-.PHONY: build install run debug clean clean-venv lint lint-strict
+.PHONY: build install run debug clean lint

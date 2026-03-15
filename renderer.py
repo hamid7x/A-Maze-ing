@@ -244,9 +244,9 @@ class Renderer:
                 self.display_maze()
                 time.sleep(self.animation_speed)
             if self.algorithm == 'dfs':
-                maze.dfs(callback=callback)
+                maze.dfs(callback)
             else:
-                maze.prim(callback=callback)
+                maze.prim(callback)
             maze.bfs()
             maze.write_output(self.filename)
             self.seed = maze.seed

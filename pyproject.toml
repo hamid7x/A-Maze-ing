@@ -1,15 +1,12 @@
 [project]
 name = "mazegen"
-version = "0.1.0"
-description = ""
+version = "1.0.0"
+description = "Maze generator with DFS and Prim algorithms"
 authors = [
-    {name = "Hamid Oukaamouch, Abdessamad Oukaamouch"}
+    {name = "Hamid, Abdessamad"}
 ]
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = [
-]
-
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
