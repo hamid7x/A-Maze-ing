@@ -1,4 +1,4 @@
-from maze_generator import MazeGenerator
+from mazegen.maze_generator import MazeGenerator
 from typing import Optional
 import os
 import time
@@ -207,7 +207,7 @@ class Renderer:
     def change_animation_speed(self) -> None:
         """Change animation speed."""
         print(f"Current speed {self.animation_speed}")
-        print(f"Enter value bettween 0.0 (instant) and 1.0 (very slow)")
+        print("Enter value bettween 0.0 (instant) and 1.0 (very slow)")
         try:
             speed = float(input('Speed: ').strip())
             if 0.0 <= speed <= 1.0:
@@ -222,8 +222,7 @@ class Renderer:
         except KeyboardInterrupt:
             print('\nProgram stoped by user')
             exit(1)
-            
-    
+
     def animate_generation(self) -> None:
         """Animate maze generation by redrawing after each wall break."""
 
@@ -245,9 +244,9 @@ class Renderer:
                 self.display_maze()
                 time.sleep(self.animation_speed)
             if self.algorithm == 'dfs':
-                maze.dfs(callback=callback)
+                maze.dfs(callback)
             else:
-                maze.prim(callback=callback)
+                maze.prim(callback)
             maze.bfs()
             maze.write_output(self.filename)
             self.seed = maze.seed

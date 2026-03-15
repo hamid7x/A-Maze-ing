@@ -24,4 +24,4 @@ if __name__ == "__main__":
     elif (size > 2):
         print("one argument required")
     else:
-        print("file name is required")
+        print("config file is required")

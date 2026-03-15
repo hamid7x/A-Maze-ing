@@ -10,9 +10,6 @@ class ConfigParser:
 
     def parsing_file(self) -> None:
         try:
-            if (self.filename.lower().endswith(".py")):
-                print("Python files are not allowed")
-                sys.exit(1)
             with open(self.filename, 'r') as file:
                 for i in file:
                     line = i.strip().lower()
@@ -63,7 +60,7 @@ class ConfigParser:
             print("Error: file not found")
             sys.exit(1)
         except IsADirectoryError:
-            print("this is a directory not a file")
+            print("Output file cannot be dirctory")
             sys.exit(1)
         except Exception as err:
             print(err)
@@ -94,9 +91,6 @@ class ConfigParser:
                 if (val == ""):
                     print("Error: file name cannot be empty")
                     sys.exit(1)
-                elif (val.lower().endswith(".py")):
-                    print("Python files are not allowed")
-                    sys.exit(1)
             if (key == "perfect"):
                 if (val == "true" or val == "1"):
                     self.file_data[key] = True
@@ -109,7 +103,8 @@ class ConfigParser:
                 if (key == "entry" or key == "exit"):
                     coord = val.split(",")
                     if (len(coord) == 1):
-                        print("Error: coordinates must be to integer ex (1,1)")
+                        print("Error: coordinates must "
+                              "be tow integer ex (1,1)")
                         sys.exit(1)
                     if (len(coord) > 2):
                         print("Error: coordinates must be",
@@ -138,5 +133,5 @@ class ConfigParser:
             if (key == "pattern" and val == ""):
                 self.file_data.update({key: None})
 
-    def get_val(self, k: str) -> int | str | dict | None:
+    def get_val(self, k: str) -> int | str | dict[str, int] | None:
         return self.file_data.get(k)
