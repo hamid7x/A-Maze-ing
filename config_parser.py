@@ -15,9 +15,8 @@ class ConfigParser:
                     line = i.strip().lower()
                     if (not line or line[0] == "#"):
                         continue
-                    lst = [i.strip() for i in line.split("=")]
-                    if (len(lst) > 2 or "=" not in line
-                       or line.startswith("=")):
+                    lst = [i.strip() for i in line.split("=", 1)]
+                    if (len(lst) != 2 or line.startswith("=")):
                         print("Error: invalid format in config file")
                         sys.exit(1)
                     constants = ["width", "height", "entry", "exit",
